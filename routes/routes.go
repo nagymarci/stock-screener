@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/nagymarci/stock-screener/controller"
+	"github.com/nagymarci/stock-screener/controllers"
 )
 
 //Route configures the routing
 func Route(router *mux.Router) {
 	router.HandleFunc("/", welcome)
-	router.HandleFunc("/register/{symbol}", controller.RegisterStock)
+	router.HandleFunc("/register/{symbol}", controllers.RegisterStock)
 }
 
 func welcome(w http.ResponseWriter, r *http.Request) {

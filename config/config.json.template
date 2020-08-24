@@ -1,0 +1,4 @@
+{
+    "Port": 3100,
+    "DatabaseConnectionString": "<your_db_connection_string>"
+}
