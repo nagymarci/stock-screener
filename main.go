@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/nagymarci/stock-screener/pkg/resource"
+	"github.com/nagymarci/stock-screener/routes"
 )
 
 func homeLink(w http.ResponseWriter, r *http.Request) {
@@ -15,7 +15,6 @@ func homeLink(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/", homeLink)
-	router.HandleFunc("/register/{symbol}", resource.RegisterStock)
-	log.Fatal(http.ListenAndServe(":8080", router))
+	routes.Route(router)
+	log.Fatal(http.ListenAndServe(":3100", router))
 }

@@ -1,4 +1,4 @@
-package resource
+package controllers
 
 import (
 	"fmt"
