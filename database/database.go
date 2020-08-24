@@ -5,12 +5,14 @@ import (
 	"log"
 	"time"
 
+	"github.com/nagymarci/stock-screener/model"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-var collection *mongo.Database
+var database *mongo.Database
 
 //Connect establishes the connection to the database
 func Connect(connectionURI string) {
@@ -30,5 +32,57 @@ func Connect(connectionURI string) {
 		log.Println("Connected to database")
 	}
 
-	collection = client.Database("stock-screener")
+	database = client.Database("stock-screener")
+}
+
+//Save writes the stockData to the database
+func Save(stockData model.StockDataInfo) {
+	collection := database.Collection("stockinfo")
+
+	insertedResult, err := collection.InsertOne(context.TODO(), stockData)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("stockData inserted into DB", insertedResult)
+
+}
+
+//Get retreives the stockinfo for the given symbol
+func Get(symbol string) model.StockDataInfo {
+	collection := database.Collection("stockinfo")
+
+	var result model.StockDataInfo
+
+	filter := bson.D{{"ticker", symbol}}
+
+	err := collection.FindOne(context.TODO(), filter).Decode(&result)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	return result
+}
+
+//GetAll retreives all of the objects from the database
+func GetAll() []model.StockDataInfo {
+	collection := database.Collection("stockinfo")
+
+	var result []model.StockDataInfo
+
+	cursor, err := collection.Find(context.TODO(), bson.M{})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for cursor.Next(context.TODO()) {
+		var data model.StockDataInfo
+		cursor.Decode(&data)
+		result = append(result, data)
+	}
+
+	return result
 }

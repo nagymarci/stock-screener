@@ -11,7 +11,9 @@ import (
 //Route configures the routing
 func Route(router *mux.Router) {
 	router.HandleFunc("/", welcome)
-	router.HandleFunc("/register/{symbol}", controllers.RegisterStock)
+	router.HandleFunc("/stocks/{symbol}", controllers.RegisterStock).Methods("POST")
+	router.HandleFunc("/stocks/{symbol}", controllers.GetStockInfo).Methods("GET")
+	router.HandleFunc("/stocks", controllers.GetAllStocks).Methods("GET")
 }
 
 func welcome(w http.ResponseWriter, r *http.Request) {
