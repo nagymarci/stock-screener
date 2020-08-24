@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/nagymarci/stock-screener/config"
+	"github.com/nagymarci/stock-screener/database"
 	"github.com/nagymarci/stock-screener/routes"
 )
 
@@ -16,7 +17,9 @@ func homeLink(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
+	conf := config.Get()
 	routes.Route(router)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Get().Port), router))
-	//log.Fatal(http.ListenAndServe(":3100", router))
+	database.Connect(conf.DatabaseConnectionString)
+
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), router))
 }
