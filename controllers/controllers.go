@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/nagymarci/stock-screener/config"
 	"github.com/nagymarci/stock-screener/database"
 	"github.com/nagymarci/stock-screener/model"
 )
@@ -22,7 +23,7 @@ func RegisterStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := http.Get("http://localhost:3000/get/" + symbol)
+	resp, err := http.Get(config.Get().StockInfoProviderURL + symbol)
 	if err != nil {
 		log.Fatalln(err)
 	}

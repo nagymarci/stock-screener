@@ -11,6 +11,7 @@ import (
 type Configuration struct {
 	DatabaseConnectionString string
 	Port                     int
+	StockInfoProviderURL     string
 }
 
 //Get returns the current configuration
