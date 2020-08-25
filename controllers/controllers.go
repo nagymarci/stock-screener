@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/nagymarci/stock-screener/config"
@@ -37,6 +38,11 @@ func RegisterStock(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	duration, _ := time.ParseDuration("1h")
+	stockData.NextUpdate = time.Now().Add(duration)
+	stockData.DividendYield5yr.NextUpdate = time.Now().Add(duration)
+	stockData.PeRatio5yr.NextUpdate = time.Now().Add(duration)
 
 	log.Println(stockData)
 

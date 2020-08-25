@@ -7,6 +7,7 @@ import (
 
 	"github.com/nagymarci/stock-screener/model"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -55,7 +56,7 @@ func Get(symbol string) model.StockDataInfo {
 
 	var result model.StockDataInfo
 
-	filter := bson.D{{"ticker", symbol}}
+	filter := bson.D{primitive.E{Key: "ticker", Value: symbol}}
 
 	err := collection.FindOne(context.TODO(), filter).Decode(&result)
 
@@ -76,6 +77,30 @@ func GetAll() []model.StockDataInfo {
 
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	for cursor.Next(context.TODO()) {
+		var data model.StockDataInfo
+		cursor.Decode(&data)
+		result = append(result, data)
+	}
+
+	return result
+}
+
+//GetAllExpired returns list of stocks that has at least one value expired
+func GetAllExpired() []model.StockDataInfo {
+	collection := database.Collection("stockinfo")
+
+	var result []model.StockDataInfo
+
+	now := time.Now()
+
+	filter := bson.D{primitive.E{Key: "nextUpdate", Value: bson.D{primitive.E{Key: "$lt", Value: now}}}}
+	cursor, err := collection.Find(context.TODO(), filter)
+
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	for cursor.Next(context.TODO()) {
