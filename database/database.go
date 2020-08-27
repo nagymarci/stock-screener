@@ -96,7 +96,12 @@ func GetAllExpired() []model.StockDataInfo {
 
 	now := time.Now()
 
-	filter := bson.D{primitive.E{Key: "nextUpdate", Value: bson.D{primitive.E{Key: "$lt", Value: now}}}}
+	filter := bson.D{{"$or", bson.A{
+		bson.D{{"nextUpdate", bson.D{{"$lt", now}}}},
+		bson.D{{"dividendYield5yr.nextUpdate", bson.D{{"$lt", now}}}},
+		bson.D{{"peRatio5yr.nextUpdate", bson.D{{"$lt", now}}}},
+		bson.D{{"nextUpdate", nil}}}}}
+
 	cursor, err := collection.Find(context.TODO(), filter)
 
 	if err != nil {
