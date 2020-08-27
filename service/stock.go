@@ -25,6 +25,12 @@ func GetWithFields(symbol string, fields []string) (model.StockDataInfo, error) 
 
 	defer resp.Body.Close()
 
+	if resp.StatusCode >= 299 {
+		var response string
+		fmt.Fscan(resp.Body, response)
+		return model.StockDataInfo{}, fmt.Errorf("Failed to get [%s], status code [%d], response [%v]", symbol, resp.StatusCode, response)
+	}
+
 	stockData := model.StockDataInfo{}
 
 	err = json.NewDecoder(resp.Body).Decode(&stockData)
