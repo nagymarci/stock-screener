@@ -50,6 +50,50 @@ func Save(stockData model.StockDataInfo) {
 
 }
 
+//Update sets the fields that were changed in the DB
+func Update(stockData model.StockDataInfo) {
+	collection := database.Collection("stockinfo")
+
+	filter := bson.D{{Key: "ticker", Value: stockData.Ticker}}
+
+	update := bson.D{{Key: "$set", Value: composeSetFields(&stockData)}}
+
+	updateResult, err := collection.UpdateOne(context.TODO(), filter, update)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	log.Println("stockData updated", updateResult)
+}
+
+func composeSetFields(stockData *model.StockDataInfo) bson.D {
+	var setFields bson.D
+
+	if stockData.Price != 0 || stockData.Eps != 0 {
+		setFields = append(setFields, bson.E{Key: "nextUpdate", Value: stockData.NextUpdate})
+	}
+
+	if stockData.Price != 0 {
+		setFields = append(setFields, bson.E{Key: "price", Value: stockData.NextUpdate})
+	}
+
+	if stockData.Eps != 0 {
+		setFields = append(setFields, bson.E{Key: "eps", Value: stockData.NextUpdate})
+	}
+
+	if stockData.DividendYield5yr.Avg != 0 || stockData.DividendYield5yr.Max != 0 {
+		setFields = append(setFields, bson.E{Key: "dividendYield5yr", Value: stockData.DividendYield5yr})
+	}
+
+	if stockData.PeRatio5yr.Avg != 0 || stockData.PeRatio5yr.Min != 0 {
+		setFields = append(setFields, bson.E{Key: "peRatio5yr", Value: stockData.PeRatio5yr})
+	}
+
+	return setFields
+}
+
 //Get retreives the stockinfo for the given symbol
 func Get(symbol string) model.StockDataInfo {
 	collection := database.Collection("stockinfo")
@@ -96,11 +140,11 @@ func GetAllExpired() []model.StockDataInfo {
 
 	now := time.Now()
 
-	filter := bson.D{{"$or", bson.A{
-		bson.D{{"nextUpdate", bson.D{{"$lt", now}}}},
-		bson.D{{"dividendYield5yr.nextUpdate", bson.D{{"$lt", now}}}},
-		bson.D{{"peRatio5yr.nextUpdate", bson.D{{"$lt", now}}}},
-		bson.D{{"nextUpdate", nil}}}}}
+	filter := bson.D{{Key: "$or", Value: bson.A{
+		bson.D{{Key: "nextUpdate", Value: bson.D{{Key: "$lt", Value: now}}}},
+		bson.D{{Key: "dividendYield5yr.nextUpdate", Value: bson.D{{Key: "$lt", Value: now}}}},
+		bson.D{{Key: "peRatio5yr.nextUpdate", Value: bson.D{{Key: "$lt", Value: now}}}},
+		bson.D{{Key: "nextUpdate", Value: nil}}}}}
 
 	cursor, err := collection.Find(context.TODO(), filter)
 

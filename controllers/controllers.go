@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/nagymarci/stock-screener/service"
+
 	"github.com/gorilla/mux"
-	"github.com/nagymarci/stock-screener/config"
 	"github.com/nagymarci/stock-screener/database"
-	"github.com/nagymarci/stock-screener/model"
 )
 
 // RegisterStock registers a stock symbol to the watchlist to evaluate it
@@ -24,27 +24,19 @@ func RegisterStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := http.Get(config.Get().StockInfoProviderURL + symbol)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	defer resp.Body.Close()
-
-	stockData := model.StockDataInfo{}
-
-	err = json.NewDecoder(resp.Body).Decode(&stockData)
+	stockData, err := service.Get(symbol)
 
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		w.WriteHeader(http.StatusFailedDependency)
+		fmt.Fprint(w, err)
+		return
 	}
 
 	duration, _ := time.ParseDuration("1h")
 	stockData.NextUpdate = time.Now().Add(duration)
 	stockData.DividendYield5yr.NextUpdate = time.Now().Add(duration)
 	stockData.PeRatio5yr.NextUpdate = time.Now().Add(duration)
-
-	log.Println(stockData)
 
 	database.Save(stockData)
 

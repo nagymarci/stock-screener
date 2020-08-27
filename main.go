@@ -11,10 +11,6 @@ import (
 	"github.com/nagymarci/stock-screener/routes"
 )
 
-func homeLink(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Welcome home!")
-}
-
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	conf := config.Get()
