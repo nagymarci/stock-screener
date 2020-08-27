@@ -76,11 +76,11 @@ func composeSetFields(stockData *model.StockDataInfo) bson.D {
 	}
 
 	if stockData.Price != 0 {
-		setFields = append(setFields, bson.E{Key: "price", Value: stockData.NextUpdate})
+		setFields = append(setFields, bson.E{Key: "price", Value: stockData.Price})
 	}
 
 	if stockData.Eps != 0 {
-		setFields = append(setFields, bson.E{Key: "eps", Value: stockData.NextUpdate})
+		setFields = append(setFields, bson.E{Key: "eps", Value: stockData.Eps})
 	}
 
 	if stockData.DividendYield5yr.Avg != 0 || stockData.DividendYield5yr.Max != 0 {

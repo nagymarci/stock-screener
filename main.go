@@ -9,6 +9,7 @@ import (
 	"github.com/nagymarci/stock-screener/config"
 	"github.com/nagymarci/stock-screener/database"
 	"github.com/nagymarci/stock-screener/routes"
+	"github.com/nagymarci/stock-screener/service"
 )
 
 func main() {
@@ -16,6 +17,8 @@ func main() {
 	conf := config.Get()
 	routes.Route(router)
 	database.Connect(conf.DatabaseConnectionString)
+
+	go service.UpdateStocks()
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), router))
 }

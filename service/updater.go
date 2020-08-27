@@ -27,7 +27,7 @@ func UpdateStocks() {
 		newStockInfo, err := GetWithFields(stockInfo.Ticker, fields)
 		if err != nil {
 			log.Println(err)
-			return
+			continue
 		}
 
 		duration, _ := time.ParseDuration("1h")
