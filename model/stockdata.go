@@ -29,6 +29,18 @@ type StockDataInfo struct {
 	NextUpdate       time.Time         `json:"-" bson:"nextUpdate"`
 }
 
+//CalculatedStockInfo holds the data calculated for investment suggestions
+type CalculatedStockInfo struct {
+	Ticker         string  `json:"ticker"`
+	Price          float32 `json:"price"`
+	PriceColor     string  `json:"priceColor"`
+	AnnualDividend float32 `json:"dividend"`
+	DividendYield  float32 `json:"dividendYield"`
+	DividendColor  string  `json:"dividendColor"`
+	CurrentPe      float32 `json:"currentPe"`
+	PeColor        string  `json:"pecolor"`
+}
+
 //NextUpdateTimes calculates the next update times based on the configuration
 func NextUpdateTimes() (time.Time, time.Time, time.Time) {
 	stockUpdateInterval, _ := time.ParseDuration(config.Config.StockUpdateInterval)

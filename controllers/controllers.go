@@ -69,3 +69,8 @@ func GetAllStocks(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(result)
 }
+
+//GetCalculatedStockInfo returns the calculated informatin of a stock
+func GetCalculatedStockInfo(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
