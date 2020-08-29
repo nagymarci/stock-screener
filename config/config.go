@@ -12,17 +12,21 @@ type Configuration struct {
 	DatabaseConnectionString string
 	Port                     int
 	StockInfoProviderURL     string
+	PeUpdateInterval         string
+	DivYieldUpdateInterval   string
+	StockUpdateInterval      string
 }
 
-//Get returns the current configuration
-func Get() Configuration {
-	configuration := Configuration{}
-	err := gonfig.GetConf("config.json", &configuration)
+//Config holds the current configuration
+var Config Configuration
+
+//Init initializes the config object with the current configuration
+//This should be called only once, at service startup
+func Init() {
+	err := gonfig.GetConf("config.json", &Config)
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(500)
 	}
-
-	return configuration
 }

@@ -56,7 +56,7 @@ func Update(stockData model.StockDataInfo) {
 
 	filter := bson.D{{Key: "ticker", Value: stockData.Ticker}}
 
-	update := bson.D{{Key: "$set", Value: composeSetFields(&stockData)}}
+	update := bson.A{bson.D{{Key: "$set", Value: composeSetFields(&stockData)}}}
 
 	updateResult, err := collection.UpdateOne(context.TODO(), filter, update)
 
@@ -71,7 +71,7 @@ func Update(stockData model.StockDataInfo) {
 func composeSetFields(stockData *model.StockDataInfo) bson.D {
 	var setFields bson.D
 
-	if stockData.Price != 0 || stockData.Eps != 0 {
+	if stockData.Price != 0 || stockData.Eps != 0 || stockData.Dividend != 0 {
 		setFields = append(setFields, bson.E{Key: "nextUpdate", Value: stockData.NextUpdate})
 	}
 
@@ -81,6 +81,10 @@ func composeSetFields(stockData *model.StockDataInfo) bson.D {
 
 	if stockData.Eps != 0 {
 		setFields = append(setFields, bson.E{Key: "eps", Value: stockData.Eps})
+	}
+
+	if stockData.Dividend != 0 {
+		setFields = append(setFields, bson.E{Key: "dividend", Value: stockData.Dividend})
 	}
 
 	if stockData.DividendYield5yr.Avg != 0 || stockData.DividendYield5yr.Max != 0 {

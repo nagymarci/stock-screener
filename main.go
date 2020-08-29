@@ -14,11 +14,11 @@ import (
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
-	conf := config.Get()
+	config.Init()
 	routes.Route(router)
-	database.Connect(conf.DatabaseConnectionString)
+	database.Connect(config.Config.DatabaseConnectionString)
 
 	go service.UpdateStocks()
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), router))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Config.Port), router))
 }

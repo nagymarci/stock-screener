@@ -1,5 +1,8 @@
 {
-    "Port": 3100,
-    "DatabaseConnectionString": "<your_db_connection_string>"
-    "StockInfoProviderURL": "<stock_information_provider>"
+    "Port": <portNumber>,
+    "DatabaseConnectionString": "<your_db_connection_string>",
+    "StockInfoProviderURL": "<stock_information_provider>",
+    "PeUpdateInterval": "<updateIntervalString>",
+    "DivYieldUpdateInterval": "<updateIntervalString>",
+    "StockUpdateInterval": "<updateIntervalString>"
 }

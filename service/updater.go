@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/nagymarci/stock-screener/database"
+	"github.com/nagymarci/stock-screener/model"
 )
 
 //UpdateStocks checks NextUpdate attribute of the stock and updates it if the time passed
@@ -15,10 +16,10 @@ func UpdateStocks() {
 	for _, stockInfo := range stocks {
 		fields := []string{}
 		if stockInfo.NextUpdate.Before(now) {
-			fields = append(fields, "price", "eps")
+			fields = append(fields, "price", "eps", "div")
 		}
 		if stockInfo.DividendYield5yr.NextUpdate.Before(now) {
-			fields = append(fields, "div")
+			fields = append(fields, "divHist")
 		}
 		if stockInfo.PeRatio5yr.NextUpdate.Before(now) {
 			fields = append(fields, "pe")
@@ -30,10 +31,7 @@ func UpdateStocks() {
 			continue
 		}
 
-		duration, _ := time.ParseDuration("1h")
-		newStockInfo.NextUpdate = time.Now().Add(duration)
-		newStockInfo.DividendYield5yr.NextUpdate = time.Now().Add(duration)
-		newStockInfo.PeRatio5yr.NextUpdate = time.Now().Add(duration)
+		newStockInfo.NextUpdate, newStockInfo.DividendYield5yr.NextUpdate, newStockInfo.PeRatio5yr.NextUpdate = model.NextUpdateTimes()
 
 		database.Update(newStockInfo)
 	}

@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
+
+	"github.com/nagymarci/stock-screener/model"
 
 	"github.com/nagymarci/stock-screener/service"
 
@@ -33,10 +34,7 @@ func RegisterStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	duration, _ := time.ParseDuration("1h")
-	stockData.NextUpdate = time.Now().Add(duration)
-	stockData.DividendYield5yr.NextUpdate = time.Now().Add(duration)
-	stockData.PeRatio5yr.NextUpdate = time.Now().Add(duration)
+	stockData.NextUpdate, stockData.DividendYield5yr.NextUpdate, stockData.PeRatio5yr.NextUpdate = model.NextUpdateTimes()
 
 	database.Save(stockData)
 

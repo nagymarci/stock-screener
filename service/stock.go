@@ -17,7 +17,7 @@ func Get(symbol string) (model.StockDataInfo, error) {
 
 //GetWithFields returns the stock from the provider with the requested fields filled
 func GetWithFields(symbol string, fields []string) (model.StockDataInfo, error) {
-	resp, err := http.Get(config.Get().StockInfoProviderURL + symbol + "?fields=" + strings.Join(fields, ","))
+	resp, err := http.Get(config.Config.StockInfoProviderURL + symbol + "?fields=" + strings.Join(fields, ","))
 
 	if err != nil {
 		return model.StockDataInfo{}, fmt.Errorf("Failed to get [%s] with error [%v]", symbol, err)
