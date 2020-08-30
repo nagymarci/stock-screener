@@ -1,29 +1,30 @@
 package model
 
 import (
+	"sync"
 	"time"
 
 	"github.com/nagymarci/stock-screener/config"
 )
 
 type pERatioInfo struct {
-	Avg        float32   `json:"avg" bson:"avg"`
-	Min        float32   `json:"min" bson:"min"`
+	Avg        float64   `json:"avg" bson:"avg"`
+	Min        float64   `json:"min" bson:"min"`
 	NextUpdate time.Time `json:"-" bson:"nextUpdate"`
 }
 
 type dividendYieldInfo struct {
-	Avg        float32   `json:"avg" bson:"avg"`
-	Max        float32   `json:"max" bson:"max"`
+	Avg        float64   `json:"avg" bson:"avg"`
+	Max        float64   `json:"max" bson:"max"`
 	NextUpdate time.Time `json:"-" bson:"nextUpdate"`
 }
 
 //StockDataInfo holds the information for one stock
 type StockDataInfo struct {
 	Ticker           string            `json:"ticker" bson:"ticker"`
-	Price            float32           `json:"price" bson:"price"`
-	Eps              float32           `json:"eps" bson:"eps"`
-	Dividend         float32           `json:"dividend" bson:"dividend"`
+	Price            float64           `json:"price" bson:"price"`
+	Eps              float64           `json:"eps" bson:"eps"`
+	Dividend         float64           `json:"dividend" bson:"dividend"`
 	PeRatio5yr       pERatioInfo       `json:"peRatio5yr" bson:"peRatio5yr"`
 	DividendYield5yr dividendYieldInfo `json:"dividendYield5yr" bson:"dividendYield5yr"`
 	NextUpdate       time.Time         `json:"-" bson:"nextUpdate"`
@@ -32,14 +33,24 @@ type StockDataInfo struct {
 //CalculatedStockInfo holds the data calculated for investment suggestions
 type CalculatedStockInfo struct {
 	Ticker         string  `json:"ticker"`
-	Price          float32 `json:"price"`
+	Price          float64 `json:"price"`
 	PriceColor     string  `json:"priceColor"`
-	AnnualDividend float32 `json:"dividend"`
-	DividendYield  float32 `json:"dividendYield"`
+	AnnualDividend float64 `json:"dividend"`
+	DividendYield  float64 `json:"dividendYield"`
+	OptInYield     float64 `json:"optInYield"`
 	DividendColor  string  `json:"dividendColor"`
-	CurrentPe      float32 `json:"currentPe"`
+	CurrentPe      float64 `json:"currentPe"`
 	PeColor        string  `json:"pecolor"`
 }
+
+type sp500DivYield struct {
+	Yield      float64
+	NextUpdate time.Time
+	Mux        sync.Mutex
+}
+
+//Sp500DivYield stores information of the S&P500 dividend yield, and when we should update it next
+var Sp500DivYield sp500DivYield
 
 //NextUpdateTimes calculates the next update times based on the configuration
 func NextUpdateTimes() (time.Time, time.Time, time.Time) {
