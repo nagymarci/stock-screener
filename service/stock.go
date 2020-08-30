@@ -10,6 +10,8 @@ import (
 	"github.com/nagymarci/stock-screener/model"
 )
 
+var defaultDividendPerYear float32 = 4
+
 //Get returns the requested stock from the provider
 func Get(symbol string) (model.StockDataInfo, error) {
 	return GetWithFields(symbol, []string{})
@@ -40,4 +42,17 @@ func GetWithFields(symbol string, fields []string) (model.StockDataInfo, error) 
 	}
 
 	return stockData, nil
+}
+
+//Calculate returns the dynamically computed data from the latest information
+func Calculate(stockInfo *model.StockDataInfo) model.CalculatedStockInfo {
+	var result model.CalculatedStockInfo
+
+	result.Ticker = stockInfo.Ticker
+	result.AnnualDividend = stockInfo.Dividend * defaultDividendPerYear
+	result.Price = stockInfo.Price
+	result.DividendYield = result.AnnualDividend / result.Price * 100
+	result.CurrentPe = result.Price / stockInfo.Eps
+
+	return result
 }

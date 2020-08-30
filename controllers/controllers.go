@@ -18,9 +18,9 @@ import (
 func RegisterStock(w http.ResponseWriter, r *http.Request) {
 	symbol := mux.Vars(r)["symbol"]
 
-	result := database.Get(symbol)
+	_, err := database.Get(symbol)
 
-	if result.Ticker != "" {
+	if err == nil {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -47,11 +47,12 @@ func RegisterStock(w http.ResponseWriter, r *http.Request) {
 func GetStockInfo(w http.ResponseWriter, r *http.Request) {
 	symbol := mux.Vars(r)["symbol"]
 
-	result := database.Get(symbol)
+	result, err := database.Get(symbol)
 
-	if result.Ticker == "" {
+	if err != nil {
+		log.Printf("Failed to get stock [%s]: [%]\n", symbol, err)
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "{}")
+		fmt.Fprintf(w, err.Error())
 		return
 	}
 
@@ -72,5 +73,19 @@ func GetAllStocks(w http.ResponseWriter, r *http.Request) {
 
 //GetCalculatedStockInfo returns the calculated informatin of a stock
 func GetCalculatedStockInfo(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+	symbol := mux.Vars(r)["symbol"]
+
+	stockInfo, err := database.Get(symbol)
+
+	if err != nil {
+		log.Printf("Failed to get stock [%s]: [%]\n", symbol, err)
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+
+	calculatedStockInfo := service.Calculate(&stockInfo)
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(calculatedStockInfo)
 }

@@ -99,7 +99,7 @@ func composeSetFields(stockData *model.StockDataInfo) bson.D {
 }
 
 //Get retreives the stockinfo for the given symbol
-func Get(symbol string) model.StockDataInfo {
+func Get(symbol string) (model.StockDataInfo, error) {
 	collection := database.Collection("stockinfo")
 
 	var result model.StockDataInfo
@@ -108,11 +108,7 @@ func Get(symbol string) model.StockDataInfo {
 
 	err := collection.FindOne(context.TODO(), filter).Decode(&result)
 
-	if err != nil {
-		log.Println(err)
-	}
-
-	return result
+	return result, err
 }
 
 //GetAll retreives all of the objects from the database
