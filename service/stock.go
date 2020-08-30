@@ -15,6 +15,8 @@ import (
 
 var defaultDividendPerYear float64 = 4
 var minOptInYieldWeight float64 = 0.4
+var maxOptInPeWeight float64 = 0.5
+var lowerDividendYieldGuardScore float64 = 1.5
 
 //Get returns the requested stock from the provider
 func Get(symbol string) (model.StockDataInfo, error) {
@@ -75,6 +77,8 @@ func Calculate(stockInfo *model.StockDataInfo) model.CalculatedStockInfo {
 
 	optInYield, minOptInYield := calculateOptInYield(stockInfo.DividendYield5yr.Max, stockInfo.DividendYield5yr.Avg, model.Sp500DivYield.Yield)
 
+	optInPe := calculateOptInPe(stockInfo.PeRatio5yr.Min, stockInfo.PeRatio5yr.Avg)
+
 	result.Ticker = stockInfo.Ticker
 	result.AnnualDividend = stockInfo.Dividend * defaultDividendPerYear
 	result.Price = stockInfo.Price
@@ -82,8 +86,49 @@ func Calculate(stockInfo *model.StockDataInfo) model.CalculatedStockInfo {
 	result.CurrentPe = result.Price / stockInfo.Eps
 	result.OptInYield = optInYield
 	result.DividendColor = calculateDividendColor(result.DividendYield, minOptInYield, stockInfo.DividendYield5yr.Avg)
+	result.OptInPe = optInPe
+	result.PeColor = calculatePeColor(result.CurrentPe, optInPe, stockInfo.PeRatio5yr.Avg)
+
+	optInPrice := calculateOptInPrice(optInYield, result.AnnualDividend, model.Sp500DivYield.Yield)
+
+	result.OptInPrice = optInPrice
+	result.PriceColor = calculatePriceColor(result.Price, optInPrice)
 
 	return result
+}
+
+func calculatePriceColor(price float64, optInPrice float64) string {
+	if price < optInPrice {
+		return "green"
+	}
+	if price < optInPrice*1.05 {
+		return "yellow"
+	}
+
+	return "red"
+}
+
+func calculateOptInPrice(optInYield float64, annualDividend float64, sp float64) float64 {
+	spOptInPrice := annualDividend / (sp * lowerDividendYieldGuardScore) * 100
+	minOptInPrice := annualDividend / optInYield * 100
+
+	return math.Min(spOptInPrice, minOptInPrice)
+}
+
+func calculatePeColor(currentPe float64, optInPe float64, avg float64) string {
+	if currentPe < optInPe {
+		return "green"
+	}
+
+	if currentPe < avg {
+		return "yellow"
+	}
+
+	return "blank"
+}
+
+func calculateOptInPe(min float64, avg float64) float64 {
+	return (avg-min)*maxOptInPeWeight + min
 }
 
 func calculateDividendColor(dividendYield float64, minOptInYield float64, avg float64) string {
@@ -100,11 +145,11 @@ func calculateDividendColor(dividendYield float64, minOptInYield float64, avg fl
 //TODO use expected dividend raise for the calcualtion
 func calculateOptInYield(max float64, avg float64, sp float64) (float64, float64) {
 	minOptInYield := calculateMinOptInYield(max, avg)
-	return math.Max(minOptInYield, sp), minOptInYieldWeight
+	return math.Max(minOptInYield, sp*lowerDividendYieldGuardScore), minOptInYieldWeight
 }
 
 func calculateMinOptInYield(max float64, avg float64) float64 {
-	return (max-avg)*0.4 + avg
+	return (max-avg)*minOptInYieldWeight + avg
 }
 
 func getSp500DivYield() (float64, error) {

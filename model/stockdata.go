@@ -34,12 +34,14 @@ type StockDataInfo struct {
 type CalculatedStockInfo struct {
 	Ticker         string  `json:"ticker"`
 	Price          float64 `json:"price"`
+	OptInPrice     float64 `json:"optInPrice"`
 	PriceColor     string  `json:"priceColor"`
 	AnnualDividend float64 `json:"dividend"`
 	DividendYield  float64 `json:"dividendYield"`
 	OptInYield     float64 `json:"optInYield"`
 	DividendColor  string  `json:"dividendColor"`
 	CurrentPe      float64 `json:"currentPe"`
+	OptInPe        float64 `json:"optInPe"`
 	PeColor        string  `json:"pecolor"`
 }
 
