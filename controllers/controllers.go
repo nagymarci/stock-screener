@@ -89,3 +89,12 @@ func GetCalculatedStockInfo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(calculatedStockInfo)
 }
+
+//UpdateAll updates all stocks in the database
+func UpdateAll(w http.ResponseWriter, r *http.Request) {
+	log.Println("Updating all stocks")
+
+	go service.UpdateStocks()
+
+	w.WriteHeader(http.StatusOK)
+}

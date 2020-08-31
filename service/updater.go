@@ -2,14 +2,19 @@ package service
 
 import (
 	"log"
+	"sync"
 	"time"
 
 	"github.com/nagymarci/stock-screener/database"
 	"github.com/nagymarci/stock-screener/model"
 )
 
+var mux sync.Mutex
+
 //UpdateStocks checks NextUpdate attribute of the stock and updates it if the time passed
 func UpdateStocks() {
+	mux.Lock()
+
 	stocks := database.GetAllExpired()
 	now := time.Now()
 
@@ -35,5 +40,5 @@ func UpdateStocks() {
 
 		database.Update(newStockInfo)
 	}
-
+	mux.Unlock()
 }
