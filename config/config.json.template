@@ -1,6 +1,6 @@
 {
     "Port": <portNumber>,
-    "DatabaseConnectionString": "<your_db_connection_string>",
+    "DatabaseConnectionString": "mongodb+srv://<username>:<password>@<dbname>.exchk.mongodb.net/<stock-screener>?retryWrites=true&w=majority"",
     "StockInfoProviderURL": "<stock_information_provider>",
     "PeUpdateInterval": "<updateIntervalString>",
     "DivYieldUpdateInterval": "<updateIntervalString>",
