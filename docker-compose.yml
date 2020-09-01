@@ -6,4 +6,3 @@ services:
       - stock-scraper
   stock-scraper:
     image: registry.digitalocean.com/nagymarci/stock-scraper:latest
-    shm_size: "1gb"
