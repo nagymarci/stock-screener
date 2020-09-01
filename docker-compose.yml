@@ -1,0 +1,9 @@
+version: '3.1'
+services:
+  stock-calculator:
+    image: registry.digitalocean.com/nagymarci/stock-calculator:latest
+    depends_on:
+      - stock-scraper
+  stock-scraper:
+    image: registry.digitalocean.com/nagymarci/stock-scraper:latest
+    shm_size: "1gb"
