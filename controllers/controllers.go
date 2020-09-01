@@ -98,3 +98,19 @@ func UpdateAll(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+//DeleteStocks deletes the given stock from the database
+func DeleteStock(w http.ResponseWriter, r *http.Request) {
+	symbol := mux.Vars(r)["symbol"]
+
+	log.Printf("Delete [%s]", symbol)
+
+	err := database.Delete(symbol)
+
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

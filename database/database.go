@@ -160,3 +160,14 @@ func GetAllExpired() []model.StockDataInfo {
 
 	return result
 }
+
+//Delete removes the given symbol from the database
+func Delete(symbol string) error {
+	collection := database.Collection("stockinfo")
+
+	filter := bson.D{{Key: "ticker", Value: symbol}}
+
+	_, err := collection.DeleteOne(context.TODO(), filter)
+
+	return err
+}
