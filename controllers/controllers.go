@@ -50,7 +50,7 @@ func GetStockInfo(w http.ResponseWriter, r *http.Request) {
 	result, err := database.Get(symbol)
 
 	if err != nil {
-		log.Printf("Failed to get stock [%s]: [%]\n", symbol, err)
+		log.Printf("Failed to get stock [%s]: [%v]\n", symbol, err)
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, err.Error())
 		return
@@ -78,7 +78,7 @@ func GetCalculatedStockInfo(w http.ResponseWriter, r *http.Request) {
 	stockInfo, err := database.Get(symbol)
 
 	if err != nil {
-		log.Printf("Failed to get stock [%s]: [%]\n", symbol, err)
+		log.Printf("Failed to get stock [%s]: [%v]\n", symbol, err)
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, err.Error())
 		return
@@ -99,7 +99,7 @@ func UpdateAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-//DeleteStocks deletes the given stock from the database
+//DeleteStock deletes the given stock from the database
 func DeleteStock(w http.ResponseWriter, r *http.Request) {
 	symbol := mux.Vars(r)["symbol"]
 
