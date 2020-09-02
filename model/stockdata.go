@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -60,5 +62,11 @@ func NextUpdateTimes() (time.Time, time.Time, time.Time) {
 	peUpdateInterval, _ := time.ParseDuration(config.Config.PeUpdateInterval)
 	divYieldUpdateInterval, _ := time.ParseDuration(config.Config.DivYieldUpdateInterval)
 
-	return time.Now().Add(stockUpdateInterval), time.Now().Add(peUpdateInterval), time.Now().Add(divYieldUpdateInterval)
+	randMinutes := rand.Intn(30)
+	randMinutesInterval, _ := time.ParseDuration(fmt.Sprintf("%dm", randMinutes))
+
+	randHours := rand.Intn(24)
+	randHoursInterval, _ := time.ParseDuration(fmt.Sprintf("%dh", randHours))
+
+	return time.Now().Add(stockUpdateInterval).Add(randMinutesInterval), time.Now().Add(peUpdateInterval).Add(randHoursInterval), time.Now().Add(divYieldUpdateInterval).Add(randHoursInterval)
 }

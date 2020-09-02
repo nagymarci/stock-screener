@@ -16,6 +16,8 @@ func UpdateStocks() {
 	mux.Lock()
 
 	stocks := database.GetAllExpired()
+	log.Printf("Updating [%d] stocks\n", len(stocks))
+
 	now := time.Now()
 
 	for _, stockInfo := range stocks {
