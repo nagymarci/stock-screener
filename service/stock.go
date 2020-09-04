@@ -145,7 +145,7 @@ func calculateDividendColor(dividendYield float64, minOptInYield float64, avg fl
 //TODO use expected dividend raise for the calcualtion
 func calculateOptInYield(max float64, avg float64, sp float64) (float64, float64) {
 	minOptInYield := calculateMinOptInYield(max, avg)
-	return math.Max(minOptInYield, sp*lowerDividendYieldGuardScore), minOptInYieldWeight
+	return math.Max(minOptInYield, sp*lowerDividendYieldGuardScore), minOptInYield
 }
 
 func calculateMinOptInYield(max float64, avg float64) float64 {
@@ -171,4 +171,38 @@ func getSp500DivYield() (float64, error) {
 	fmt.Fscan(resp.Body, &response)
 
 	return response, nil
+}
+
+//GetAllRecommendedStock returns all the recommended stocks based on the requirements
+func GetAllRecommendedStock(stocks []model.StockDataInfo, numReqs int) []model.CalculatedStockInfo {
+	var result []model.CalculatedStockInfo
+
+	for _, stockInfo := range stocks {
+		calculated := Calculate(&stockInfo)
+
+		reqsFulfilled := calculateReqsFulfilled(&calculated)
+
+		if reqsFulfilled >= numReqs {
+			result = append(result, calculated)
+		}
+	}
+
+	return result
+}
+
+func calculateReqsFulfilled(stock *model.CalculatedStockInfo) int {
+	result := 0
+	if stock.DividendColor == "green" {
+		result++
+	}
+
+	if stock.PriceColor == "green" {
+		result++
+	}
+
+	if stock.PeColor == "green" {
+		result++
+	}
+
+	return result
 }

@@ -12,6 +12,8 @@ import (
 func Route(router *mux.Router) {
 	router.HandleFunc("/", welcome)
 	router.HandleFunc("/stocks/update", controllers.UpdateAll).Methods("POST")
+	//router.HandleFunc("/stocks/calculated", controllers.GetAllRecommendedStock).Queries("min", "{[1-3]}").Methods("GET")
+	router.HandleFunc("/stocks/calculated", controllers.GetAllRecommendedStock).Methods("GET")
 	router.HandleFunc("/stocks/{symbol}", controllers.RegisterStock).Methods("POST")
 	router.HandleFunc("/stocks/{symbol}", controllers.GetStockInfo).Methods("GET")
 	router.HandleFunc("/stocks/{symbol}", controllers.DeleteStock).Methods("DELETE")

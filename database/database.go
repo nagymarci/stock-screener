@@ -58,14 +58,14 @@ func Update(stockData model.StockDataInfo) {
 
 	update := bson.A{bson.D{{Key: "$set", Value: composeSetFields(&stockData)}}}
 
-	updateResult, err := collection.UpdateOne(context.TODO(), filter, update)
+	_, err := collection.UpdateOne(context.TODO(), filter, update)
 
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	log.Println("stockData updated", updateResult)
+	log.Println("stockData updated ", stockData.Ticker)
 }
 
 func composeSetFields(stockData *model.StockDataInfo) bson.D {

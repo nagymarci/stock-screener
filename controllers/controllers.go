@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/nagymarci/stock-screener/model"
 
@@ -113,4 +114,31 @@ func DeleteStock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+//GetAllRecommendedStock calculates the data for all stocks and returns the recommended ones
+func GetAllRecommendedStock(w http.ResponseWriter, r *http.Request) {
+	log.Println("GetAllCalculatedStockInfo")
+	min := r.FormValue("min")
+
+	if min == "" {
+		min = "3"
+	}
+
+	numReqs, err := strconv.Atoi(min)
+
+	if err != nil || numReqs < 1 || numReqs > 3 {
+		log.Println("Invalid parameter, changing to 3", err)
+		numReqs = 3
+	}
+
+	log.Println(numReqs, err)
+
+	stocks := database.GetAll()
+
+	result := service.GetAllRecommendedStock(stocks, numReqs)
+
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(result)
 }

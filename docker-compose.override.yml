@@ -1,9 +1,9 @@
 version: "3.1"
 services:
   stock-calculator:
-      build: .
-      ports:
-        - 3100:3100
+    build: .
+    ports:
+      - 3100:3100
   stock-scraper:
     ports:
-      - 3000-3000
+      - 3000:3000
