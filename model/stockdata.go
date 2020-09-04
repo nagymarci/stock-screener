@@ -56,8 +56,8 @@ type sp500DivYield struct {
 //Sp500DivYield stores information of the S&P500 dividend yield, and when we should update it next
 var Sp500DivYield sp500DivYield
 
-//NextUpdateTimes calculates the next update times based on the configuration
-func NextUpdateTimes() (time.Time, time.Time, time.Time) {
+//CalculateNextUpdateTimes calculates the next update times based on the configuration
+func (stock *StockDataInfo) CalculateNextUpdateTimes() {
 	stockUpdateInterval, _ := time.ParseDuration(config.Config.StockUpdateInterval)
 	peUpdateInterval, _ := time.ParseDuration(config.Config.PeUpdateInterval)
 	divYieldUpdateInterval, _ := time.ParseDuration(config.Config.DivYieldUpdateInterval)
@@ -68,5 +68,7 @@ func NextUpdateTimes() (time.Time, time.Time, time.Time) {
 	randHours := rand.Intn(24)
 	randHoursInterval, _ := time.ParseDuration(fmt.Sprintf("%dh", randHours))
 
-	return time.Now().Add(stockUpdateInterval).Add(randMinutesInterval), time.Now().Add(peUpdateInterval).Add(randHoursInterval), time.Now().Add(divYieldUpdateInterval).Add(randHoursInterval)
+	stock.NextUpdate = time.Now().Add(stockUpdateInterval).Add(randMinutesInterval)
+	stock.PeRatio5yr.NextUpdate = time.Now().Add(peUpdateInterval).Add(randHoursInterval)
+	stock.DividendYield5yr.NextUpdate = time.Now().Add(divYieldUpdateInterval).Add(randHoursInterval)
 }

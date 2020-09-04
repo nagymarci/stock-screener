@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/nagymarci/stock-screener/database"
-	"github.com/nagymarci/stock-screener/model"
 )
 
 var mux sync.Mutex
@@ -38,7 +37,7 @@ func UpdateStocks() {
 			continue
 		}
 
-		newStockInfo.NextUpdate, newStockInfo.DividendYield5yr.NextUpdate, newStockInfo.PeRatio5yr.NextUpdate = model.NextUpdateTimes()
+		newStockInfo.CalculateNextUpdateTimes()
 
 		database.Update(newStockInfo)
 	}

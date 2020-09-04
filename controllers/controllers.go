@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/nagymarci/stock-screener/model"
-
 	"github.com/nagymarci/stock-screener/service"
 
 	"github.com/gorilla/mux"
@@ -35,7 +33,7 @@ func RegisterStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stockData.NextUpdate, stockData.DividendYield5yr.NextUpdate, stockData.PeRatio5yr.NextUpdate = model.NextUpdateTimes()
+	stockData.CalculateNextUpdateTimes()
 
 	err = database.Save(stockData)
 
