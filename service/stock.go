@@ -66,7 +66,7 @@ func Calculate(stockInfo *model.StockDataInfo) model.CalculatedStockInfo {
 				log.Println("Using old sp500 dividend yield")
 
 			} else {
-				nextUpdateInterval, _ := time.ParseDuration("24h")
+				nextUpdateInterval, _ := time.ParseDuration("12h")
 				model.Sp500DivYield.Yield = yield
 				model.Sp500DivYield.NextUpdate = now.Add(nextUpdateInterval)
 				model.Sp500DivYield.Mux.Unlock()
@@ -81,6 +81,9 @@ func Calculate(stockInfo *model.StockDataInfo) model.CalculatedStockInfo {
 
 	result.Ticker = stockInfo.Ticker
 	result.AnnualDividend = stockInfo.Dividend * defaultDividendPerYear
+	if result.Ticker == "O" {
+		result.AnnualDividend = stockInfo.Dividend * 12
+	}
 	result.Price = stockInfo.Price
 	result.DividendYield = result.AnnualDividend / result.Price * 100
 	result.CurrentPe = result.Price / stockInfo.Eps

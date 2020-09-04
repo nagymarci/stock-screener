@@ -40,13 +40,13 @@ func Connect(connectionURI string) {
 func Save(stockData model.StockDataInfo) {
 	collection := database.Collection("stockinfo")
 
-	insertedResult, err := collection.InsertOne(context.TODO(), stockData)
+	_, err := collection.InsertOne(context.TODO(), stockData)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("stockData inserted into DB", insertedResult)
+	log.Println("stockData inserted into DB ", stockData.Ticker)
 
 }
 
