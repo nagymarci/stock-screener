@@ -37,7 +37,13 @@ func RegisterStock(w http.ResponseWriter, r *http.Request) {
 
 	stockData.NextUpdate, stockData.DividendYield5yr.NextUpdate, stockData.PeRatio5yr.NextUpdate = model.NextUpdateTimes()
 
-	database.Save(stockData)
+	err = database.Save(stockData)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, err)
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
 

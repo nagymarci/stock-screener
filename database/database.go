@@ -37,17 +37,18 @@ func Connect(connectionURI string) {
 }
 
 //Save writes the stockData to the database
-func Save(stockData model.StockDataInfo) {
+func Save(stockData model.StockDataInfo) error {
 	collection := database.Collection("stockinfo")
 
 	_, err := collection.InsertOne(context.TODO(), stockData)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return err
 	}
 
 	log.Println("stockData inserted into DB ", stockData.Ticker)
-
+	return nil
 }
 
 //Update sets the fields that were changed in the DB
