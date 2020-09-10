@@ -172,3 +172,39 @@ func Delete(symbol string) error {
 
 	return err
 }
+
+func DeleteProfile(profile string) error {
+	collection := database.Collection("profiles")
+
+	filter := bson.D{{Key: "name", Value: profile}}
+
+	_, err := collection.DeleteOne(context.TODO(), filter)
+
+	return err
+}
+
+func SaveProfile(profile model.Profile) error {
+	collection := database.Collection("profiles")
+
+	_, err := collection.InsertOne(context.TODO(), profile)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	log.Println("profile inserted into DB ", profile.Name)
+	return nil
+}
+
+func GetProfile(profile string) (model.Profile, error) {
+	collection := database.Collection("profiles")
+
+	var result model.Profile
+
+	filter := bson.D{primitive.E{Key: "name", Value: profile}}
+
+	err := collection.FindOne(context.TODO(), filter).Decode(&result)
+
+	return result, err
+}

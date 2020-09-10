@@ -53,6 +53,17 @@ type sp500DivYield struct {
 	Mux        sync.Mutex
 }
 
+//Profile holds a profileName with list of stocks
+type Profile struct {
+	Name   string   `bson:"name"`
+	Stocks []string `bson:"stocks"`
+}
+
+//Stocks represent list of stocks
+type Stocks struct {
+	Values []string `json:"values"`
+}
+
 //Sp500DivYield stores information of the S&P500 dividend yield, and when we should update it next
 var Sp500DivYield sp500DivYield
 
