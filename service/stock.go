@@ -87,6 +87,9 @@ func Calculate(stockInfo *model.StockDataInfo) model.CalculatedStockInfo {
 	result.Price = stockInfo.Price
 	result.DividendYield = result.AnnualDividend / result.Price * 100
 	result.CurrentPe = result.Price / stockInfo.Eps
+	if stockInfo.Eps == 0 {
+		result.CurrentPe = math.MaxFloat64
+	}
 	result.OptInYield = optInYield
 	result.DividendColor = calculateDividendColor(result.DividendYield, minOptInYield, stockInfo.DividendYield5yr.Avg)
 	result.OptInPe = optInPe
