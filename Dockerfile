@@ -1,6 +1,4 @@
-FROM golang:alpine
-
-RUN apk add --no-cache bash
+FROM golang:alpine AS builder
 
 # Set necessary environmet variables needed for our image
 ENV GO111MODULE=on \
@@ -22,17 +20,19 @@ COPY . .
 # Build the application
 RUN go build -o main .
 
-# Move to /dist directory as the place for resulting binary folder
-WORKDIR /dist
+FROM alpine:latest
+
+RUN apk add --no-cache bash tzdata
 
 # Copy binary from build to main folder
-RUN cp /build/main .
+COPY --from=builder /build/main .
+COPY wait-for-it.sh .
 
 COPY config.json .
 
 # Export necessary port
 EXPOSE 3100
 
-RUN ["chmod", "+x", "/build/wait-for-it.sh"]
+RUN ["chmod", "+x", "./wait-for-it.sh"]
 # Command to run when starting the container
-CMD ["/build/wait-for-it.sh", "stock-scraper:3000", "--", "/dist/main"]
+CMD ["./wait-for-it.sh", "stock-scraper:3000", "--", "./main"]
