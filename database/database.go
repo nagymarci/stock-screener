@@ -208,3 +208,51 @@ func GetProfile(profile string) (model.Profile, error) {
 
 	return result, err
 }
+
+func GetAllProfileName() ([]string, error) {
+	collection := database.Collection("profiles")
+
+	var result []string
+
+	cursor, err := collection.Find(context.TODO(), bson.M{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for cursor.Next(context.TODO()) {
+		var data model.Profile
+		cursor.Decode(&data)
+		result = append(result, data.Name)
+	}
+
+	return result, err
+}
+
+func GetPreviouslyRecommendedStocks(profileName string) ([]string, error) {
+	collection := database.Collection("recommendations")
+
+	filter := bson.D{primitive.E{Key: "name", Value: profileName}}
+
+	var result model.Profile
+
+	err := collection.FindOne(context.TODO(), filter).Decode(&result)
+
+	return result.Stocks, err
+}
+
+func SaveRecommendation(profileName string, stocks []string) error {
+	collection := database.Collection("recommendations")
+
+	filter := bson.D{primitive.E{Key: "name", Value: profileName}}
+
+	_, err := collection.ReplaceOne(context.TODO(), filter, model.Profile{Name: profileName, Stocks: stocks})
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	log.Println("recommendation inserted into DB ", profileName)
+	return nil
+}

@@ -23,6 +23,8 @@ func Route(router *mux.Router) {
 	router.HandleFunc("/profiles/{name}/stocks/recommended", controllers.GetRecommendedStocksInProfile).Methods("GET")
 	router.HandleFunc("/profiles/{name}/stocks/calculated", controllers.GetCalculatedStocksInProfile).Methods("GET")
 	router.HandleFunc("/profiles/{name}/stocks", controllers.GetStocksInProfile).Methods("GET")
+
+	router.HandleFunc("/notifyTest", controllers.NotifyTest).Methods("GET")
 }
 
 func welcome(w http.ResponseWriter, r *http.Request) {

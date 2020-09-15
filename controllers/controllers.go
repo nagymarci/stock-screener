@@ -328,3 +328,8 @@ func GetRecommendedStocksInProfile(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 
 }
+
+func NotifyTest(w http.ResponseWriter, r *http.Request) {
+	service.NotifyChanges()
+	w.WriteHeader(http.StatusOK)
+}
