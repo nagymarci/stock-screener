@@ -86,9 +86,14 @@ func NotifyChanges() {
 			continue
 		}
 
-		database.SaveRecommendation(profileName, currentStocks)
+		err = sendNotification(profileName, removed, added, currentStocks)
 
-		sendNotification(profileName, removed, added, currentStocks)
+		if err != nil {
+			log.Printf("Failed to send notification for profile [%v], [%v]", profileName, err)
+			continue
+		}
+
+		database.SaveRecommendation(profileName, currentStocks)
 	}
 }
 

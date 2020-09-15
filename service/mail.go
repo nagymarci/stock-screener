@@ -19,7 +19,7 @@ func (s *smtpServer) Address() string {
 	return s.host + ":" + s.port
 }
 
-func sendNotification(profileName string, removed, added, currentStocks []string) {
+func sendNotification(profileName string, removed, added, currentStocks []string) error {
 	log.Printf("Sendin notification for profile [%v], removed [%+v], added [%+v], final [%+v]\n", profileName, removed, added, currentStocks)
 
 	// Sender data.
@@ -43,9 +43,9 @@ func sendNotification(profileName string, removed, added, currentStocks []string
 	auth := smtp.PlainAuth("", from, password, smtpServer.host)
 	// Sending email.
 	err := smtp.SendMail(smtpServer.Address(), auth, from, to, message)
-	if err != nil {
-		fmt.Println(err)
-		return
+	if err == nil {
+		log.Println("Email Sent!")
 	}
-	log.Println("Email Sent!")
+
+	return err
 }
