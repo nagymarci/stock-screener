@@ -15,6 +15,11 @@ type Configuration struct {
 	PeUpdateInterval         string
 	DivYieldUpdateInterval   string
 	StockUpdateInterval      string
+	SmptServerHost           string
+	SmptServerPort           string
+	SmptSenderUsername       string
+	SmptSenderPassword       string
+	NotificationRecipient    string
 }
 
 //Config holds the current configuration

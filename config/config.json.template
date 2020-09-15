@@ -1,8 +1,13 @@
 {
     "Port": <portNumber>,
-    "DatabaseConnectionString": "mongodb+srv://<username>:<password>@<dbname>.exchk.mongodb.net/<stock-screener>?retryWrites=true&w=majority"",
+    "DatabaseConnectionString": "mongodb+srv://<username>:<password>@<dbname>.exchk.mongodb.net/<stock-screener>?retryWrites=true&w=majority",
     "StockInfoProviderURL": "<stock_information_provider>",
     "PeUpdateInterval": "<updateIntervalString>",
     "DivYieldUpdateInterval": "<updateIntervalString>",
-    "StockUpdateInterval": "<updateIntervalString>"
+    "StockUpdateInterval": "<updateIntervalString>",
+    "SmptServerHost":"<smpt_server_host>",
+    "SmptServerPort":"<port>",
+    "SmptSenderUsername":"<sender>",
+    "SmptSenderPassword":"<sender_password>",
+    "NotificationRecipient":"<recipient>"
 }

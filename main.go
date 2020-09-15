@@ -23,9 +23,10 @@ func main() {
 	database.Connect(config.Config.DatabaseConnectionString)
 
 	c := cron.New()
-	_, err := c.AddFunc("CRON_TZ=America/New_York 0/30,1 9-10 * * MON-FRI", service.UpdateStocks)
+	_, err := c.AddFunc("CRON_TZ=America/New_York * 9-17 * * MON-FRI", service.UpdateStocks)
 	log.Println(err)
-	c.AddFunc("CRON_TZ=America/New_York * 10-16 * * MON-FRI", service.UpdateStocks)
+	_, err = c.AddFunc("CRON_TZ=America/New_York 0 8-18 * * MON-FRI", service.NotifyChanges)
+	log.Println(err)
 
 	c.Start()
 
