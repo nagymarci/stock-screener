@@ -149,6 +149,19 @@ func GetAllRecommendedStock(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
+//GetAllCalculatedStock calculates the data for all stocks and returns all of them
+func GetAllCalculatedStocks(w http.ResponseWriter, r *http.Request) {
+	log.Println("GetAllCalculatedStock")
+
+	stocks := database.GetAll()
+
+	result := service.GetAllRecommendedStock(stocks, 0)
+
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(result)
+}
+
 func SaveProfile(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 
@@ -246,6 +259,20 @@ func GetStocksInProfile(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(stockInfos)
 
+}
+
+func ListProfiles(w http.ResponseWriter, r *http.Request) {
+	profiles, err := database.GetAllProfileName()
+
+	if err != nil {
+		log.Printf("Failed to get profiles [%v]", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, err.Error())
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(profiles)
 }
 
 func GetCalculatedStocksInProfile(w http.ResponseWriter, r *http.Request) {
