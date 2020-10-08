@@ -245,8 +245,9 @@ func SaveRecommendation(profileName string, stocks []string) error {
 	collection := database.Collection("recommendations")
 
 	filter := bson.D{primitive.E{Key: "name", Value: profileName}}
+	opts := options.Replace().SetUpsert(true)
 
-	_, err := collection.ReplaceOne(context.TODO(), filter, model.Profile{Name: profileName, Stocks: stocks})
+	_, err := collection.ReplaceOne(context.TODO(), filter, model.Profile{Name: profileName, Stocks: stocks}, opts)
 
 	if err != nil {
 		log.Println(err)
