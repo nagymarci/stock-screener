@@ -257,3 +257,13 @@ func SaveRecommendation(profileName string, stocks []string) error {
 	log.Println("recommendation inserted into DB ", profileName)
 	return nil
 }
+
+func DeleteRecommendation(profileName string) error {
+	collection := database.Collection("recommendations")
+
+	filter := bson.D{{Key: "name", Value: profileName}}
+
+	_, err := collection.DeleteOne(context.TODO(), filter)
+
+	return err
+}

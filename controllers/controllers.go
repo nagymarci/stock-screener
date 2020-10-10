@@ -227,7 +227,14 @@ func DeleteProfile(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	err = database.DeleteRecommendation(name)
+
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func GetStocksInProfile(w http.ResponseWriter, r *http.Request) {
