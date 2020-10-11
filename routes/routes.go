@@ -21,7 +21,7 @@ func Route(router *mux.Router) {
 	router.HandleFunc("/stocks/{symbol}/calculated", controllers.GetCalculatedStockInfo).Methods("GET")
 	router.HandleFunc("/stocks", controllers.GetAllStocks).Methods("GET")
 	router.HandleFunc("/profiles/{name}", controllers.SaveProfile).Methods("POST")
-	router.HandleFunc("/profiles/{name}", controllers.DeleteProfile).Methods("DELETE")
+	router.HandleFunc("/profiles/{name}", controllers.DeleteProfile).Methods(http.MethodDelete, http.MethodOptions)
 	router.HandleFunc("/profiles/{name}/stocks/recommended", controllers.GetRecommendedStocksInProfile).Methods("GET")
 	router.HandleFunc("/profiles/{name}/stocks/calculated", controllers.GetCalculatedStocksInProfile).Methods("GET")
 	router.HandleFunc("/profiles/{name}/stocks", controllers.GetStocksInProfile).Methods("GET")
@@ -38,6 +38,12 @@ func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Do stuff here
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS")
+			return
+		}
+
 		// Call the next handler, which can be another middleware in the chain, or the final handler.
 		next.ServeHTTP(w, r)
 	})
