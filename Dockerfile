@@ -28,8 +28,6 @@ RUN apk add --no-cache bash tzdata
 COPY --from=builder /build/main .
 COPY wait-for-it.sh .
 
-COPY config.json .
-
 # Export necessary port
 EXPOSE 3100
 
