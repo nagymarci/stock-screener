@@ -56,20 +56,29 @@ func Calculate(stockInfo *model.StockDataInfo) model.CalculatedStockInfo {
 
 	now := time.Now()
 	if model.Sp500DivYield.NextUpdate.Before(now) {
+		log.Println("Before lock")
 		model.Sp500DivYield.Mux.Lock()
+		log.Println("After lock")
 
 		if model.Sp500DivYield.NextUpdate.Before(now) {
 			yield, err := getSp500DivYield()
 			if err != nil {
+				log.Println("Before unlock in error")
 				model.Sp500DivYield.Mux.Unlock()
-				log.Printf("Failed to update sp500 dividend yield: [%v]", err)
+				log.Println("After unlock in error")
+				log.Printf("Failed to update sp500 dividend yield: [%v]\n", err)
 				log.Println("Using old sp500 dividend yield")
 
 			} else {
-				nextUpdateInterval, _ := time.ParseDuration("12h")
+				nextUpdateInterval, err := time.ParseDuration("12h")
+				if err != nil {
+					log.Printf("Error when parsing duration [%v]\n", err)
+				}
 				model.Sp500DivYield.Yield = yield
 				model.Sp500DivYield.NextUpdate = now.Add(nextUpdateInterval)
+				log.Println("Before unlock in happy")
 				model.Sp500DivYield.Mux.Unlock()
+				log.Println("After unlock in happy")
 				log.Println("SP500 dividend yield updated")
 			}
 		}
