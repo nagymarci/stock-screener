@@ -20,6 +20,9 @@ type Configuration struct {
 	SmptSenderUsername       string
 	SmptSenderPassword       string
 	NotificationRecipient    string
+	AuthorizationServer      string
+	AuthorizationAudience    string
+	RequiredScopes           string
 }
 
 //Config holds the current configuration

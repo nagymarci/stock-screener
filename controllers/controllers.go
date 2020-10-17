@@ -218,9 +218,6 @@ func SaveProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteProfile(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodOptions {
-		return
-	}
 	name := mux.Vars(r)["name"]
 
 	err := database.DeleteProfile(name)

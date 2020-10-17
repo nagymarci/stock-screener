@@ -22,15 +22,18 @@ func Route() http.Handler {
 	stocks.HandleFunc("/{symbol}", controllers.GetStockInfo).Methods("GET")
 	stocks.HandleFunc("/{symbol}", controllers.DeleteStock).Methods("DELETE")
 	stocks.HandleFunc("/{symbol}/calculated", controllers.GetCalculatedStockInfo).Methods("GET")
-	stocks.HandleFunc("/", controllers.GetAllStocks).Methods("GET")
+	stocks.HandleFunc("", controllers.GetAllStocks).Methods("GET")
 
 	profiles := router.PathPrefix("/profiles").Subrouter()
-	profiles.HandleFunc("/{name}", controllers.SaveProfile).Methods("POST")
-	profiles.HandleFunc("/{name}", controllers.DeleteProfile).Methods(http.MethodDelete, http.MethodOptions)
+	auth := negroni.New(
+		negroni.HandlerFunc(AuthorizationMiddleware().HandlerWithNext),
+		negroni.HandlerFunc(ScopeMiddleware))
+	profiles.Handle("/{name}", auth.With(negroni.Wrap(http.HandlerFunc(controllers.SaveProfile)))).Methods("POST")
+	profiles.Handle("/{name}", auth.With(negroni.Wrap(http.HandlerFunc(controllers.DeleteProfile)))).Methods(http.MethodDelete, http.MethodOptions)
 	profiles.HandleFunc("/{name}/stocks/recommended", controllers.GetRecommendedStocksInProfile).Methods("GET")
 	profiles.HandleFunc("/{name}/stocks/calculated", controllers.GetCalculatedStocksInProfile).Methods("GET")
 	profiles.HandleFunc("/{name}/stocks", controllers.GetStocksInProfile).Methods("GET")
-	profiles.HandleFunc("/", controllers.ListProfiles).Methods("GET")
+	profiles.HandleFunc("", controllers.ListProfiles).Methods("GET")
 
 	router.HandleFunc("/crashTest", func(w http.ResponseWriter, req *http.Request) {
 		panic("shit")
