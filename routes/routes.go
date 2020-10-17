@@ -5,10 +5,13 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/nagymarci/stock-screener/controllers"
+	"github.com/urfave/negroni"
 )
 
 //Route configures the routing
-func Route(router *mux.Router) {
+func Route() http.Handler {
+	router := mux.NewRouter()
+
 	router.Use(corsMiddleware)
 
 	stocks := router.PathPrefix("/stocks").Subrouter()
@@ -29,7 +32,20 @@ func Route(router *mux.Router) {
 	profiles.HandleFunc("/{name}/stocks", controllers.GetStocksInProfile).Methods("GET")
 	profiles.HandleFunc("/", controllers.ListProfiles).Methods("GET")
 
-	router.HandleFunc("/notifyTest", controllers.NotifyTest).Methods("GET")
+	router.HandleFunc("/crashTest", func(w http.ResponseWriter, req *http.Request) {
+		panic("shit")
+	}).Methods(http.MethodGet)
+
+	router.HandleFunc("/logTest", func(w http.ResponseWriter, req *http.Request) {
+		return
+	}).Methods(http.MethodGet)
+
+	recovery := negroni.NewRecovery()
+	recovery.PrintStack = false
+
+	n := negroni.New(recovery, negroni.NewLogger())
+	n.UseHandler(router)
+	return n
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

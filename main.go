@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/nagymarci/stock-screener/config"
 	"github.com/nagymarci/stock-screener/database"
 	"github.com/nagymarci/stock-screener/routes"
@@ -17,9 +16,8 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	router := mux.NewRouter().StrictSlash(true)
 	config.Init()
-	routes.Route(router)
+	router := routes.Route()
 	database.Connect(config.Config.DatabaseConnectionString)
 
 	c := cron.New()
