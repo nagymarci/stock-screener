@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/nagymarci/stock-screener/model"
 
 	"github.com/nagymarci/stock-screener/service"
@@ -164,6 +165,11 @@ func GetAllCalculatedStocks(w http.ResponseWriter, r *http.Request) {
 
 func SaveProfile(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
+
+	user := r.Context().Value("user")
+
+	email := user.(*jwt.Token).Claims.(jwt.MapClaims)["https://stock.nagymarci.hu/email"].(string)
+	log.Printf("User email: %s", email)
 
 	var stocks model.Stocks
 

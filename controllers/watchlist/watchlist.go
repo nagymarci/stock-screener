@@ -1,0 +1,175 @@
+package watchlist
+
+import (
+	"encoding/json"
+	"errors"
+	"log"
+	"net/http"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"github.com/gorilla/mux"
+	"github.com/nagymarci/stock-screener/database"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/nagymarci/stock-screener/model"
+	"github.com/nagymarci/stock-screener/service"
+)
+
+//Create creates a new watchlist
+func Create(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value("user")
+
+	email := user.(*jwt.Token).Claims.(jwt.MapClaims)["https://stock.nagymarci.hu/email"].(string)
+	log.Printf("User email: %s", email)
+
+	var watchlistRequest model.WatchlistRequest
+
+	err := json.NewDecoder(r.Body).Decode(&watchlistRequest)
+
+	if err != nil {
+		message := "Failed to deserialize payload: " + err.Error()
+		handleError(message, w, http.StatusBadRequest)
+		log.Println(message)
+		return
+	}
+
+	if watchlistRequest.Stocks == nil || len(watchlistRequest.Stocks) < 1 {
+		message := "Required value 'stocks' is missing"
+		handleError(message, w, http.StatusBadRequest)
+		log.Println(message)
+		return
+	}
+
+	if len(watchlistRequest.Name) < 1 || watchlistRequest.Name == " " {
+		message := "Required value 'name' is missing"
+		handleError(message, w, http.StatusBadRequest)
+		log.Println(message)
+		return
+	}
+
+	watchlistRequest.Email = email
+	var addedStocks []string
+
+	for _, symbol := range watchlistRequest.Stocks {
+		err = saveStock(symbol)
+
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		addedStocks = append(addedStocks, symbol)
+	}
+
+	watchlistRequest.Stocks = addedStocks
+	id, err := database.WatchLists.Create(watchlistRequest)
+
+	if err != nil {
+		message := "Watchlist creation failed: " + err.Error()
+		handleError(message, w, http.StatusInternalServerError)
+		log.Println(message)
+		return
+	}
+
+	watchlistResponse := model.Watchlist{
+		ID:     id,
+		Name:   watchlistRequest.Name,
+		Stocks: watchlistRequest.Stocks,
+		Email:  watchlistRequest.Email}
+
+	handleJSONResponse(watchlistResponse, w)
+}
+
+//Delete deletes the specified watchlist if that belongs to the authorized user
+func Delete(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+
+	user := r.Context().Value("user")
+	email := user.(*jwt.Token).Claims.(jwt.MapClaims)["https://stock.nagymarci.hu/email"].(string)
+	log.Printf("User email: %s", email)
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		message := "Invalid watchlist id: " + err.Error()
+		handleError(message, w, http.StatusBadRequest)
+		log.Println(message)
+		return
+	}
+
+	err = validateUserAuthorization(objectId, email)
+
+	if err != nil {
+		message := "Cannot remove watchlist " + err.Error()
+		handleError(message, w, http.StatusBadRequest)
+		log.Println(message)
+		return
+	}
+
+	result, err := database.WatchLists.Delete(objectId)
+
+	if result != 1 || err != nil {
+		errorText := ""
+		if err != nil {
+			errorText = err.Error()
+		}
+		message := "Failed to delete watchlist: " + errorText
+		handleError(message, w, http.StatusInternalServerError)
+		log.Println(message)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func validateUserAuthorization(id primitive.ObjectID, email string) error {
+	watchlist, err := database.WatchLists.Get(id)
+	if err != nil {
+		return err
+	}
+
+	if watchlist.Email != email {
+		return errors.New("Watchlist does not belong to user")
+	}
+
+	return nil
+}
+
+func saveStock(stock string) error {
+	_, err := database.Get(stock)
+
+	if err == nil {
+		return err
+	}
+
+	stockData, err := service.Get(stock)
+
+	if err != nil {
+		return err
+	}
+
+	err = database.Save(stockData)
+
+	return err
+}
+
+func handleError(msg string, w http.ResponseWriter, status int) {
+	response := model.ErrorResponse{Message: msg}
+
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, model.UnknownError, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(jsonResponse)
+}
+
+func handleJSONResponse(object interface{}, w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(object)
+}

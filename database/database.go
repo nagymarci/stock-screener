@@ -34,6 +34,8 @@ func Connect(connectionURI string) {
 	}
 
 	database = client.Database("stock-screener")
+
+	watchlistCollection = database.Collection("watchlist")
 }
 
 //Save writes the stockData to the database
