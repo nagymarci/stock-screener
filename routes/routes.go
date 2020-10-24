@@ -46,7 +46,10 @@ func Route() http.Handler {
 
 	watchlist := mux.NewRouter().PathPrefix("/watchlist").Subrouter()
 	watchlist.HandleFunc("", watchlistController.Create).Methods(http.MethodPost, http.MethodOptions)
+	watchlist.HandleFunc("", watchlistController.GetAll).Methods(http.MethodGet)
 	watchlist.HandleFunc("/{id}", watchlistController.Delete).Methods(http.MethodDelete, http.MethodOptions)
+	watchlist.HandleFunc("/{id}", watchlistController.Get).Methods(http.MethodGet)
+	watchlist.HandleFunc("/{id}/calculated", watchlistController.GetCalculated).Methods(http.MethodGet)
 
 	router.PathPrefix("/watchlist").Handler(auth.With(negroni.Wrap(watchlist)))
 

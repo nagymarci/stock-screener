@@ -44,3 +44,23 @@ func (watchlists) Delete(id primitive.ObjectID) (int64, error) {
 
 	return result.DeletedCount, err
 }
+
+func (watchlists) GetAll(email string) ([]model.Watchlist, error) {
+	filter := bson.D{{Key: "email", Value: email}}
+
+	cursor, err := watchlistCollection.Find(context.TODO(), filter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var result []model.Watchlist
+
+	for cursor.Next(context.TODO()) {
+		var data model.Watchlist
+		cursor.Decode(&data)
+		result = append(result, data)
+	}
+
+	return result, err
+}

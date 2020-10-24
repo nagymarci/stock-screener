@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/gorilla/mux"
+	"github.com/nagymarci/stock-screener/config"
 	"github.com/nagymarci/stock-screener/database"
 
 	"github.com/dgrijalva/jwt-go"
@@ -20,7 +21,7 @@ import (
 func Create(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value("user")
 
-	email := user.(*jwt.Token).Claims.(jwt.MapClaims)["https://stock.nagymarci.hu/email"].(string)
+	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
 	log.Printf("User email: %s", email)
 
 	var watchlistRequest model.WatchlistRequest
@@ -78,7 +79,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		Stocks: watchlistRequest.Stocks,
 		Email:  watchlistRequest.Email}
 
-	handleJSONResponse(watchlistResponse, w)
+	handleJSONResponse(watchlistResponse, w, http.StatusCreated)
 }
 
 //Delete deletes the specified watchlist if that belongs to the authorized user
@@ -86,10 +87,10 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	user := r.Context().Value("user")
-	email := user.(*jwt.Token).Claims.(jwt.MapClaims)["https://stock.nagymarci.hu/email"].(string)
+	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
 	log.Printf("User email: %s", email)
 
-	objectId, err := primitive.ObjectIDFromHex(id)
+	objectID, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
 		message := "Invalid watchlist id: " + err.Error()
@@ -98,7 +99,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = validateUserAuthorization(objectId, email)
+	_, err = getAndValidateUserAuthorization(objectID, email)
 
 	if err != nil {
 		message := "Cannot remove watchlist " + err.Error()
@@ -107,7 +108,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := database.WatchLists.Delete(objectId)
+	result, err := database.WatchLists.Delete(objectID)
 
 	if result != 1 || err != nil {
 		errorText := ""
@@ -123,17 +124,105 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func validateUserAuthorization(id primitive.ObjectID, email string) error {
+func Get(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+
+	user := r.Context().Value("user")
+	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
+	log.Printf("User email: %s", email)
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		message := "Invalid watchlist id: " + err.Error()
+		handleError(message, w, http.StatusBadRequest)
+		log.Println(message)
+		return
+	}
+
+	watchlist, err := getAndValidateUserAuthorization(objectID, email)
+
+	if err != nil {
+		message := "Cannot read watchlist " + err.Error()
+		handleError(message, w, http.StatusBadRequest)
+		log.Println(message)
+		return
+	}
+
+	handleJSONResponse(watchlist, w, http.StatusOK)
+}
+
+func GetAll(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value("user")
+	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
+	log.Printf("User email: %s", email)
+
+	watchlists, err := database.WatchLists.GetAll(email)
+
+	if err != nil {
+		message := "Unable to list watchlists " + err.Error()
+		handleError(message, w, http.StatusBadRequest)
+		log.Println(message)
+		return
+	}
+
+	handleJSONResponse(watchlists, w, http.StatusOK)
+}
+
+func GetCalculated(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+
+	user := r.Context().Value("user")
+	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
+	log.Printf("User email: %s", email)
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		message := "Invalid watchlist id: " + err.Error()
+		handleError(message, w, http.StatusBadRequest)
+		log.Println(message)
+		return
+	}
+
+	watchlist, err := getAndValidateUserAuthorization(objectID, email)
+
+	if err != nil {
+		message := "Cannot read watchlist " + err.Error()
+		handleError(message, w, http.StatusBadRequest)
+		log.Println(message)
+		return
+	}
+
+	var stockInfos []model.CalculatedStockInfo
+
+	for _, symbol := range watchlist.Stocks {
+		result, err := database.Get(symbol)
+
+		if err != nil {
+			log.Printf("Failed to get stock [%s]: [%v]\n", symbol, err)
+			continue
+		}
+
+		calculatedStockInfo := service.Calculate(&result)
+
+		stockInfos = append(stockInfos, calculatedStockInfo)
+	}
+
+	handleJSONResponse(stockInfos, w, http.StatusOK)
+}
+
+func getAndValidateUserAuthorization(id primitive.ObjectID, email string) (model.Watchlist, error) {
 	watchlist, err := database.WatchLists.Get(id)
 	if err != nil {
-		return err
+		return watchlist, err
 	}
 
 	if watchlist.Email != email {
-		return errors.New("Watchlist does not belong to user")
+		return watchlist, errors.New("Watchlist does not belong to user")
 	}
 
-	return nil
+	return watchlist, err
 }
 
 func saveStock(stock string) error {
@@ -168,8 +257,8 @@ func handleError(msg string, w http.ResponseWriter, status int) {
 	w.Write(jsonResponse)
 }
 
-func handleJSONResponse(object interface{}, w http.ResponseWriter) {
+func handleJSONResponse(object interface{}, w http.ResponseWriter, status int) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(object)
 }

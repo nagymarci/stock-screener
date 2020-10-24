@@ -23,6 +23,7 @@ type Configuration struct {
 	AuthorizationServer      string
 	AuthorizationAudience    string
 	RequiredScopes           string
+	EmailClaim               string
 }
 
 //Config holds the current configuration
