@@ -10,15 +10,26 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type watchlists struct{}
+type Watchlists struct {
+	collection *mongo.Collection
+}
 
-var watchlistCollection *mongo.Collection
+type WatchlistCollection interface {
+	Create(watchlist model.WatchlistRequest) (primitive.ObjectID, error)
+	Get(id primitive.ObjectID) (model.Watchlist, error)
+	Delete(id primitive.ObjectID) (int64, error)
+	GetAll(email string) ([]model.Watchlist, error)
+	List() ([]model.Watchlist, error)
+}
 
-//WatchLists gives CRUD operations for watchlists
-var WatchLists watchlists
+func NewWatchlists(db *mongo.Database) WatchlistCollection {
+	return &Watchlists{
+		collection: db.Collection("watchlist"),
+	}
+}
 
-func (watchlists) Create(watchlist model.WatchlistRequest) (primitive.ObjectID, error) {
-	result, err := watchlistCollection.InsertOne(context.TODO(), watchlist)
+func (w *Watchlists) Create(watchlist model.WatchlistRequest) (primitive.ObjectID, error) {
+	result, err := w.collection.InsertOne(context.TODO(), watchlist)
 
 	if err != nil {
 		return primitive.NilObjectID, err
@@ -27,28 +38,28 @@ func (watchlists) Create(watchlist model.WatchlistRequest) (primitive.ObjectID, 
 	return result.InsertedID.(primitive.ObjectID), err
 }
 
-func (watchlists) Get(id primitive.ObjectID) (model.Watchlist, error) {
+func (w *Watchlists) Get(id primitive.ObjectID) (model.Watchlist, error) {
 	var result model.Watchlist
 
 	filter := bson.D{primitive.E{Key: "_id", Value: id}}
 
-	err := watchlistCollection.FindOne(context.TODO(), filter).Decode(&result)
+	err := w.collection.FindOne(context.TODO(), filter).Decode(&result)
 
 	return result, err
 }
 
-func (watchlists) Delete(id primitive.ObjectID) (int64, error) {
+func (w *Watchlists) Delete(id primitive.ObjectID) (int64, error) {
 	filter := bson.D{{Key: "_id", Value: id}}
 
-	result, err := watchlistCollection.DeleteOne(context.TODO(), filter)
+	result, err := w.collection.DeleteOne(context.TODO(), filter)
 
 	return result.DeletedCount, err
 }
 
-func (watchlists) GetAll(email string) ([]model.Watchlist, error) {
+func (w *Watchlists) GetAll(email string) ([]model.Watchlist, error) {
 	filter := bson.D{{Key: "email", Value: email}}
 
-	cursor, err := watchlistCollection.Find(context.TODO(), filter)
+	cursor, err := w.collection.Find(context.TODO(), filter)
 
 	if err != nil {
 		return nil, err
@@ -65,8 +76,8 @@ func (watchlists) GetAll(email string) ([]model.Watchlist, error) {
 	return result, err
 }
 
-func (watchlists) List() ([]model.Watchlist, error) {
-	cursor, err := watchlistCollection.Find(context.TODO(), bson.M{})
+func (w *Watchlists) List() ([]model.Watchlist, error) {
+	cursor, err := w.collection.Find(context.TODO(), bson.M{})
 
 	if err != nil {
 		return nil, err

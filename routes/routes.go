@@ -5,12 +5,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/nagymarci/stock-screener/controllers"
-	watchlistController "github.com/nagymarci/stock-screener/controllers/watchlist"
+	watchlistControllers "github.com/nagymarci/stock-screener/controllers/watchlist"
 	"github.com/urfave/negroni"
 )
 
 //Route configures the routing
-func Route() http.Handler {
+func Route(watchlistController *watchlistControllers.WatchlistController) http.Handler {
 	router := mux.NewRouter()
 
 	router.Use(corsMiddleware)

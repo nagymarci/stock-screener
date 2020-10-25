@@ -10,38 +10,47 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type recommendations struct{}
+type Recommendations struct {
+	collection *mongo.Collection
+}
 
-var recommendationCollection *mongo.Collection
-
-//Recommendations gives CRUD operations for recommendations
-var Recommendations recommendations
+type RecommendationCollection interface {
+	Create(id primitive.ObjectID, stocks []string) error
+	Get(id primitive.ObjectID) ([]string, error)
+	Update(id primitive.ObjectID, stocks []string) error
+}
 
 type recommendation struct {
 	ID     primitive.ObjectID `bson:"_id"`
 	Stocks []string           `bson:"stocks"`
 }
 
-func (recommendations) Create(id primitive.ObjectID, stocks []string) error {
-	_, err := watchlistCollection.InsertOne(context.TODO(), recommendation{ID: id, Stocks: stocks})
+func NewRecommendations(db *mongo.Database) RecommendationCollection {
+	return &Recommendations{
+		collection: db.Collection("recommendations"),
+	}
+}
+
+func (r *Recommendations) Create(id primitive.ObjectID, stocks []string) error {
+	_, err := r.collection.InsertOne(context.TODO(), recommendation{ID: id, Stocks: stocks})
 
 	return err
 }
 
-func (recommendations) Get(id primitive.ObjectID) ([]string, error) {
+func (r *Recommendations) Get(id primitive.ObjectID) ([]string, error) {
 	filter := bson.D{primitive.E{Key: "_id", Value: id}}
 
 	var result recommendation
-	err := watchlistCollection.FindOne(context.TODO(), filter).Decode(&result)
+	err := r.collection.FindOne(context.TODO(), filter).Decode(&result)
 
 	return result.Stocks, err
 }
 
-func (recommendations) Update(id primitive.ObjectID, stocks []string) error {
+func (r *Recommendations) Update(id primitive.ObjectID, stocks []string) error {
 	filter := bson.D{primitive.E{Key: "_id", Value: id}}
 	opts := options.Replace().SetUpsert(true)
 
-	_, err := watchlistCollection.ReplaceOne(context.TODO(), filter, recommendation{ID: id, Stocks: stocks}, opts)
+	_, err := r.collection.ReplaceOne(context.TODO(), filter, recommendation{ID: id, Stocks: stocks}, opts)
 
 	if err != nil {
 		log.Println(err)

@@ -17,8 +17,18 @@ import (
 	"github.com/nagymarci/stock-screener/service"
 )
 
+type WatchlistController struct {
+	watchlists database.WatchlistCollection
+}
+
+func NewWatchlistController(w database.WatchlistCollection) *WatchlistController {
+	return &WatchlistController{
+		watchlists: w,
+	}
+}
+
 //Create creates a new watchlist
-func Create(w http.ResponseWriter, r *http.Request) {
+func (wl *WatchlistController) Create(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value("user")
 
 	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
@@ -64,7 +74,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	watchlistRequest.Stocks = addedStocks
-	id, err := database.WatchLists.Create(watchlistRequest)
+	id, err := wl.watchlists.Create(watchlistRequest)
 
 	if err != nil {
 		message := "Watchlist creation failed: " + err.Error()
@@ -83,7 +93,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 }
 
 //Delete deletes the specified watchlist if that belongs to the authorized user
-func Delete(w http.ResponseWriter, r *http.Request) {
+func (wl *WatchlistController) Delete(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	user := r.Context().Value("user")
@@ -99,7 +109,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = getAndValidateUserAuthorization(objectID, email)
+	_, err = wl.getAndValidateUserAuthorization(objectID, email)
 
 	if err != nil {
 		message := "Cannot remove watchlist " + err.Error()
@@ -108,7 +118,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := database.WatchLists.Delete(objectID)
+	result, err := wl.watchlists.Delete(objectID)
 
 	if result != 1 || err != nil {
 		errorText := ""
@@ -124,7 +134,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func Get(w http.ResponseWriter, r *http.Request) {
+func (wl *WatchlistController) Get(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	user := r.Context().Value("user")
@@ -140,7 +150,7 @@ func Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	watchlist, err := getAndValidateUserAuthorization(objectID, email)
+	watchlist, err := wl.getAndValidateUserAuthorization(objectID, email)
 
 	if err != nil {
 		message := "Cannot read watchlist " + err.Error()
@@ -152,12 +162,12 @@ func Get(w http.ResponseWriter, r *http.Request) {
 	handleJSONResponse(watchlist, w, http.StatusOK)
 }
 
-func GetAll(w http.ResponseWriter, r *http.Request) {
+func (wl *WatchlistController) GetAll(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value("user")
 	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
 	log.Printf("User email: %s", email)
 
-	watchlists, err := database.WatchLists.GetAll(email)
+	watchlists, err := wl.watchlists.GetAll(email)
 
 	if err != nil {
 		message := "Unable to list watchlists " + err.Error()
@@ -169,7 +179,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	handleJSONResponse(watchlists, w, http.StatusOK)
 }
 
-func GetCalculated(w http.ResponseWriter, r *http.Request) {
+func (wl *WatchlistController) GetCalculated(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	user := r.Context().Value("user")
@@ -185,7 +195,7 @@ func GetCalculated(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	watchlist, err := getAndValidateUserAuthorization(objectID, email)
+	watchlist, err := wl.getAndValidateUserAuthorization(objectID, email)
 
 	if err != nil {
 		message := "Cannot read watchlist " + err.Error()
@@ -212,8 +222,8 @@ func GetCalculated(w http.ResponseWriter, r *http.Request) {
 	handleJSONResponse(stockInfos, w, http.StatusOK)
 }
 
-func getAndValidateUserAuthorization(id primitive.ObjectID, email string) (model.Watchlist, error) {
-	watchlist, err := database.WatchLists.Get(id)
+func (w *WatchlistController) getAndValidateUserAuthorization(id primitive.ObjectID, email string) (model.Watchlist, error) {
+	watchlist, err := w.watchlists.Get(id)
 	if err != nil {
 		return watchlist, err
 	}

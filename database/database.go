@@ -16,7 +16,7 @@ import (
 var database *mongo.Database
 
 //Connect establishes the connection to the database
-func Connect(connectionURI string) {
+func Connect(connectionURI string) *mongo.Database {
 	clientOptions := options.Client().ApplyURI(connectionURI)
 	client, err := mongo.NewClient(clientOptions)
 
@@ -35,8 +35,7 @@ func Connect(connectionURI string) {
 
 	database = client.Database("stock-screener")
 
-	watchlistCollection = database.Collection("watchlist")
-	recommendationCollection = database.Collection("recommendations")
+	return database
 }
 
 //Save writes the stockData to the database
