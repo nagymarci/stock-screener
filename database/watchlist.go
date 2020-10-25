@@ -64,3 +64,20 @@ func (watchlists) GetAll(email string) ([]model.Watchlist, error) {
 
 	return result, err
 }
+
+func (watchlists) List() ([]model.Watchlist, error) {
+	cursor, err := watchlistCollection.Find(context.TODO(), bson.M{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var result []model.Watchlist
+	for cursor.Next(context.TODO()) {
+		var data model.Watchlist
+		cursor.Decode(&data)
+		result = append(result, data)
+	}
+
+	return result, err
+}

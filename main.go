@@ -25,6 +25,8 @@ func main() {
 	log.Println(err)
 	_, err = c.AddFunc("CRON_TZ=America/New_York 0 8-18 * * MON-FRI", service.NotifyChanges)
 	log.Println(err)
+	_, err = c.AddFunc("CRON_TZ=America/New_York 0 8-18 * * MON-FRI", service.NotifyChanges_watchlist)
+	log.Println(err)
 
 	c.Start()
 

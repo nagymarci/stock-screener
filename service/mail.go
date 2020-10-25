@@ -20,6 +20,10 @@ func (s *smtpServer) Address() string {
 }
 
 func sendNotification(profileName string, removed, added, currentStocks []string) error {
+	return sendNotification_watchlist(profileName, removed, added, currentStocks, config.Config.NotificationRecipient)
+}
+
+func sendNotification_watchlist(profileName string, removed, added, currentStocks []string, email string) error {
 	log.Printf("Sendin notification for profile [%v], removed [%+v], added [%+v], final [%+v]\n", profileName, removed, added, currentStocks)
 
 	// Sender data.
@@ -27,7 +31,7 @@ func sendNotification(profileName string, removed, added, currentStocks []string
 	password := config.Config.SmptSenderPassword
 	// Receiver email address.
 	to := []string{
-		config.Config.NotificationRecipient,
+		email,
 	}
 	// smtp server configuration.
 	smtpServer := smtpServer{host: config.Config.SmptServerHost, port: config.Config.SmptServerPort}
