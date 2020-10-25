@@ -1,18 +1,13 @@
 package watchlist
 
 import (
-	"encoding/json"
 	"errors"
 	"log"
-	"net/http"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	"github.com/gorilla/mux"
-	"github.com/nagymarci/stock-screener/config"
 	"github.com/nagymarci/stock-screener/database"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/nagymarci/stock-screener/model"
 	"github.com/nagymarci/stock-screener/service"
 )
@@ -28,42 +23,11 @@ func NewWatchlistController(w database.WatchlistCollection) *WatchlistController
 }
 
 //Create creates a new watchlist
-func (wl *WatchlistController) Create(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user")
-
-	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
-	log.Printf("User email: %s", email)
-
-	var watchlistRequest model.WatchlistRequest
-
-	err := json.NewDecoder(r.Body).Decode(&watchlistRequest)
-
-	if err != nil {
-		message := "Failed to deserialize payload: " + err.Error()
-		handleError(message, w, http.StatusBadRequest)
-		log.Println(message)
-		return
-	}
-
-	if watchlistRequest.Stocks == nil || len(watchlistRequest.Stocks) < 1 {
-		message := "Required value 'stocks' is missing"
-		handleError(message, w, http.StatusBadRequest)
-		log.Println(message)
-		return
-	}
-
-	if len(watchlistRequest.Name) < 1 || watchlistRequest.Name == " " {
-		message := "Required value 'name' is missing"
-		handleError(message, w, http.StatusBadRequest)
-		log.Println(message)
-		return
-	}
-
-	watchlistRequest.Email = email
+func (wl *WatchlistController) Create(request *model.WatchlistRequest) (*model.Watchlist, error) {
 	var addedStocks []string
 
-	for _, symbol := range watchlistRequest.Stocks {
-		err = saveStock(symbol)
+	for _, symbol := range request.Stocks {
+		err := saveStock(symbol)
 
 		if err != nil {
 			log.Println(err)
@@ -73,135 +37,74 @@ func (wl *WatchlistController) Create(w http.ResponseWriter, r *http.Request) {
 		addedStocks = append(addedStocks, symbol)
 	}
 
-	watchlistRequest.Stocks = addedStocks
-	id, err := wl.watchlists.Create(watchlistRequest)
+	request.Stocks = addedStocks
+	id, err := wl.watchlists.Create(*request)
 
 	if err != nil {
-		message := "Watchlist creation failed: " + err.Error()
-		handleError(message, w, http.StatusInternalServerError)
-		log.Println(message)
-		return
+		return nil, model.NewInternalServerError(err.Error())
 	}
 
 	watchlistResponse := model.Watchlist{
 		ID:     id,
-		Name:   watchlistRequest.Name,
-		Stocks: watchlistRequest.Stocks,
-		Email:  watchlistRequest.Email}
+		Name:   request.Name,
+		Stocks: request.Stocks,
+		Email:  request.Email}
 
-	handleJSONResponse(watchlistResponse, w, http.StatusCreated)
+	return &watchlistResponse, err
 }
 
 //Delete deletes the specified watchlist if that belongs to the authorized user
-func (wl *WatchlistController) Delete(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-
-	user := r.Context().Value("user")
-	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
-	log.Printf("User email: %s", email)
-
-	objectID, err := primitive.ObjectIDFromHex(id)
+func (wl *WatchlistController) Delete(id primitive.ObjectID, email string) error {
+	_, err := wl.getAndValidateUserAuthorization(id, email)
 
 	if err != nil {
-		message := "Invalid watchlist id: " + err.Error()
-		handleError(message, w, http.StatusBadRequest)
-		log.Println(message)
-		return
+		return model.NewBadRequestError(err.Error())
 	}
 
-	_, err = wl.getAndValidateUserAuthorization(objectID, email)
+	result, err := wl.watchlists.Delete(id)
+
+	if result != 1 {
+		return model.NewInternalServerError("No object were removed from database")
+	}
 
 	if err != nil {
-		message := "Cannot remove watchlist " + err.Error()
-		handleError(message, w, http.StatusBadRequest)
-		log.Println(message)
-		return
+		return model.NewInternalServerError(err.Error())
 	}
 
-	result, err := wl.watchlists.Delete(objectID)
-
-	if result != 1 || err != nil {
-		errorText := ""
-		if err != nil {
-			errorText = err.Error()
-		}
-		message := "Failed to delete watchlist: " + errorText
-		handleError(message, w, http.StatusInternalServerError)
-		log.Println(message)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+	return nil
 }
 
-func (wl *WatchlistController) Get(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-
-	user := r.Context().Value("user")
-	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
-	log.Printf("User email: %s", email)
-
-	objectID, err := primitive.ObjectIDFromHex(id)
-
-	if err != nil {
-		message := "Invalid watchlist id: " + err.Error()
-		handleError(message, w, http.StatusBadRequest)
-		log.Println(message)
-		return
-	}
-
-	watchlist, err := wl.getAndValidateUserAuthorization(objectID, email)
+func (wl *WatchlistController) Get(id primitive.ObjectID, email string) (model.Watchlist, error) {
+	watchlist, err := wl.getAndValidateUserAuthorization(id, email)
 
 	if err != nil {
 		message := "Cannot read watchlist " + err.Error()
-		handleError(message, w, http.StatusBadRequest)
 		log.Println(message)
-		return
+		return model.Watchlist{}, model.NewBadRequestError(message)
 	}
 
-	handleJSONResponse(watchlist, w, http.StatusOK)
+	return watchlist, nil
 }
 
-func (wl *WatchlistController) GetAll(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user")
-	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
-	log.Printf("User email: %s", email)
-
+func (wl *WatchlistController) GetAll(email string) ([]model.Watchlist, error) {
 	watchlists, err := wl.watchlists.GetAll(email)
 
 	if err != nil {
 		message := "Unable to list watchlists " + err.Error()
-		handleError(message, w, http.StatusBadRequest)
 		log.Println(message)
-		return
+		return nil, model.NewBadRequestError(message)
 	}
 
-	handleJSONResponse(watchlists, w, http.StatusOK)
+	return watchlists, nil
 }
 
-func (wl *WatchlistController) GetCalculated(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["id"]
-
-	user := r.Context().Value("user")
-	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
-	log.Printf("User email: %s", email)
-
-	objectID, err := primitive.ObjectIDFromHex(id)
-
-	if err != nil {
-		message := "Invalid watchlist id: " + err.Error()
-		handleError(message, w, http.StatusBadRequest)
-		log.Println(message)
-		return
-	}
-
-	watchlist, err := wl.getAndValidateUserAuthorization(objectID, email)
+func (wl *WatchlistController) GetCalculated(id primitive.ObjectID, email string) ([]model.CalculatedStockInfo, error) {
+	watchlist, err := wl.getAndValidateUserAuthorization(id, email)
 
 	if err != nil {
 		message := "Cannot read watchlist " + err.Error()
-		handleError(message, w, http.StatusBadRequest)
 		log.Println(message)
-		return
+		return nil, model.NewBadRequestError(message)
 	}
 
 	var stockInfos []model.CalculatedStockInfo
@@ -219,7 +122,7 @@ func (wl *WatchlistController) GetCalculated(w http.ResponseWriter, r *http.Requ
 		stockInfos = append(stockInfos, calculatedStockInfo)
 	}
 
-	handleJSONResponse(stockInfos, w, http.StatusOK)
+	return stockInfos, nil
 }
 
 func (w *WatchlistController) getAndValidateUserAuthorization(id primitive.ObjectID, email string) (model.Watchlist, error) {
@@ -251,24 +154,4 @@ func saveStock(stock string) error {
 	err = database.Save(stockData)
 
 	return err
-}
-
-func handleError(msg string, w http.ResponseWriter, status int) {
-	response := model.ErrorResponse{Message: msg}
-
-	jsonResponse, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, model.UnknownError, http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	w.Write(jsonResponse)
-}
-
-func handleJSONResponse(object interface{}, w http.ResponseWriter, status int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(object)
 }

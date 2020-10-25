@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/nagymarci/stock-screener/controllers"
 	watchlistControllers "github.com/nagymarci/stock-screener/controllers/watchlist"
+	"github.com/nagymarci/stock-screener/handler"
 	"github.com/urfave/negroni"
 )
 
@@ -45,11 +46,11 @@ func Route(watchlistController *watchlistControllers.WatchlistController) http.H
 	}).Methods(http.MethodGet)
 
 	watchlist := mux.NewRouter().PathPrefix("/watchlist").Subrouter()
-	watchlist.HandleFunc("", watchlistController.Create).Methods(http.MethodPost, http.MethodOptions)
-	watchlist.HandleFunc("", watchlistController.GetAll).Methods(http.MethodGet)
-	watchlist.HandleFunc("/{id}", watchlistController.Delete).Methods(http.MethodDelete, http.MethodOptions)
-	watchlist.HandleFunc("/{id}", watchlistController.Get).Methods(http.MethodGet)
-	watchlist.HandleFunc("/{id}/calculated", watchlistController.GetCalculated).Methods(http.MethodGet)
+	handler.WatchlistCreateHandler(watchlist, watchlistController)
+	handler.WatchlistGetAllHandler(watchlist, watchlistController)
+	handler.WatchlistDeleteHandler(watchlist, watchlistController)
+	handler.WatchlistGetHandler(watchlist, watchlistController)
+	handler.WatchlistGetCalculatedHandler(watchlist, watchlistController)
 
 	router.PathPrefix("/watchlist").Handler(auth.With(negroni.Wrap(watchlist)))
 
