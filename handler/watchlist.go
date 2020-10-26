@@ -13,7 +13,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func WatchlistCreateHandler(mux *mux.Router, watchlist *watchlist.WatchlistController) {
+type watchlistCreateController interface {
+	Create(request *model.WatchlistRequest) (*model.Watchlist, error)
+}
+
+func WatchlistCreateHandler(mux *mux.Router, watchlist watchlistCreateController, extractEmail func(*http.Request) string) {
 	mux.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		email := extractEmail(r)
 
@@ -58,9 +62,9 @@ func WatchlistCreateHandler(mux *mux.Router, watchlist *watchlist.WatchlistContr
 	}).Methods(http.MethodPost, http.MethodOptions)
 }
 
-func WatchlistDeleteHandler(router *mux.Router, watchlist *watchlist.WatchlistController) {
+func WatchlistDeleteHandler(router *mux.Router, watchlist *watchlist.WatchlistController, extractEmail func(*http.Request) string) {
 	router.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		email, id, err := extractEmailAndId(r)
+		email, id, err := extractEmailAndId(r, extractEmail)
 
 		if err != nil {
 			handleError(err, w)
@@ -78,7 +82,7 @@ func WatchlistDeleteHandler(router *mux.Router, watchlist *watchlist.WatchlistCo
 	}).Methods(http.MethodDelete, http.MethodOptions)
 }
 
-func WatchlistGetAllHandler(router *mux.Router, watchlist *watchlist.WatchlistController) {
+func WatchlistGetAllHandler(router *mux.Router, watchlist *watchlist.WatchlistController, extractEmail func(*http.Request) string) {
 	router.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
 		email := extractEmail(r)
 
@@ -93,9 +97,9 @@ func WatchlistGetAllHandler(router *mux.Router, watchlist *watchlist.WatchlistCo
 	}).Methods(http.MethodGet)
 }
 
-func WatchlistGetHandler(router *mux.Router, watchlist *watchlist.WatchlistController) {
+func WatchlistGetHandler(router *mux.Router, watchlist *watchlist.WatchlistController, extractEmail func(*http.Request) string) {
 	router.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
-		email, id, err := extractEmailAndId(r)
+		email, id, err := extractEmailAndId(r, extractEmail)
 
 		if err != nil {
 			handleError(err, w)
@@ -113,9 +117,9 @@ func WatchlistGetHandler(router *mux.Router, watchlist *watchlist.WatchlistContr
 	}).Methods(http.MethodGet)
 }
 
-func WatchlistGetCalculatedHandler(router *mux.Router, watchlist *watchlist.WatchlistController) {
+func WatchlistGetCalculatedHandler(router *mux.Router, watchlist *watchlist.WatchlistController, extractEmail func(*http.Request) string) {
 	router.HandleFunc("/{id}/calculated", func(w http.ResponseWriter, r *http.Request) {
-		email, id, err := extractEmailAndId(r)
+		email, id, err := extractEmailAndId(r, extractEmail)
 
 		if err != nil {
 			handleError(err, w)
@@ -163,14 +167,14 @@ func handleJSONResponse(object interface{}, w http.ResponseWriter, status int) {
 	json.NewEncoder(w).Encode(object)
 }
 
-func extractEmail(r *http.Request) string {
+func DefaultExtractEmail(r *http.Request) string {
 	user := r.Context().Value("user")
 	email := user.(*jwt.Token).Claims.(jwt.MapClaims)[config.Config.EmailClaim].(string)
 	log.Printf("User email: %s", email)
 	return email
 }
 
-func extractEmailAndId(r *http.Request) (string, primitive.ObjectID, error) {
+func extractEmailAndId(r *http.Request, extractEmail func(*http.Request) string) (string, primitive.ObjectID, error) {
 	email := extractEmail(r)
 	id, err := extractId(r)
 

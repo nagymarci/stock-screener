@@ -46,11 +46,11 @@ func Route(watchlistController *watchlistControllers.WatchlistController) http.H
 	}).Methods(http.MethodGet)
 
 	watchlist := mux.NewRouter().PathPrefix("/watchlist").Subrouter()
-	handler.WatchlistCreateHandler(watchlist, watchlistController)
-	handler.WatchlistGetAllHandler(watchlist, watchlistController)
-	handler.WatchlistDeleteHandler(watchlist, watchlistController)
-	handler.WatchlistGetHandler(watchlist, watchlistController)
-	handler.WatchlistGetCalculatedHandler(watchlist, watchlistController)
+	handler.WatchlistCreateHandler(watchlist, watchlistController, handler.DefaultExtractEmail)
+	handler.WatchlistGetAllHandler(watchlist, watchlistController, handler.DefaultExtractEmail)
+	handler.WatchlistDeleteHandler(watchlist, watchlistController, handler.DefaultExtractEmail)
+	handler.WatchlistGetHandler(watchlist, watchlistController, handler.DefaultExtractEmail)
+	handler.WatchlistGetCalculatedHandler(watchlist, watchlistController, handler.DefaultExtractEmail)
 
 	router.PathPrefix("/watchlist").Handler(auth.With(negroni.Wrap(watchlist)))
 
