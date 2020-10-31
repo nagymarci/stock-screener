@@ -50,7 +50,7 @@ func Route(watchlistController *watchlistControllers.WatchlistController) http.H
 	handler.WatchlistGetAllHandler(watchlist, watchlistController, handler.DefaultExtractEmail)
 	handler.WatchlistDeleteHandler(watchlist, watchlistController, handler.DefaultExtractEmail)
 	handler.WatchlistGetHandler(watchlist, watchlistController, handler.DefaultExtractEmail)
-	handler.WatchlistGetCalculatedHandler(watchlist, watchlistController, handler.DefaultExtractEmail)
+	handler.WatchlistGetCalculatedHandler(watchlist, watchlistController, handler.DefaultExtractEmail, handler.DefaultExtractUserID)
 
 	router.PathPrefix("/watchlist").Handler(auth.With(negroni.Wrap(watchlist)))
 

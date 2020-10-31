@@ -92,7 +92,7 @@ func GetCalculatedStockInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	calculatedStockInfo := service.Calculate(&stockInfo)
+	calculatedStockInfo := service.Calculate(&stockInfo, 9)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(calculatedStockInfo)
@@ -310,7 +310,7 @@ func GetCalculatedStocksInProfile(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		calculatedStockInfo := service.Calculate(&result)
+		calculatedStockInfo := service.Calculate(&result, 9)
 
 		stockInfos = append(stockInfos, calculatedStockInfo)
 	}

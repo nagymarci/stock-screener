@@ -117,16 +117,17 @@ func WatchlistGetHandler(router *mux.Router, watchlist *watchlist.WatchlistContr
 	}).Methods(http.MethodGet)
 }
 
-func WatchlistGetCalculatedHandler(router *mux.Router, watchlist *watchlist.WatchlistController, extractEmail func(*http.Request) string) {
+func WatchlistGetCalculatedHandler(router *mux.Router, watchlist *watchlist.WatchlistController, extractEmail func(*http.Request) string, extractUserID func(*http.Request) string) {
 	router.HandleFunc("/{id}/calculated", func(w http.ResponseWriter, r *http.Request) {
 		email, id, err := extractEmailAndId(r, extractEmail)
+		userID := extractUserID(r)
 
 		if err != nil {
 			handleError(err, w)
 			return
 		}
 
-		result, err := watchlist.GetCalculated(id, email)
+		result, err := watchlist.GetCalculated(id, email, userID)
 
 		if err != nil {
 			handleError(err, w)
@@ -192,4 +193,10 @@ func extractId(r *http.Request) (primitive.ObjectID, error) {
 	}
 
 	return objectID, nil
+}
+
+func DefaultExtractUserID(r *http.Request) string {
+	user := r.Context().Value("user")
+	email := user.(*jwt.Token).Claims.(jwt.MapClaims)["sub"].(string)
+	return email
 }

@@ -4,12 +4,16 @@ import (
 	"errors"
 	"log"
 
+	"github.com/nagymarci/stock-screener/api"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/nagymarci/stock-screener/database"
 
 	"github.com/nagymarci/stock-screener/model"
 	"github.com/nagymarci/stock-screener/service"
+
+	userprofileModel "github.com/nagymarci/stock-user-profile/model"
 )
 
 type WatchlistController struct {
@@ -98,7 +102,7 @@ func (wl *WatchlistController) GetAll(email string) ([]model.Watchlist, error) {
 	return watchlists, nil
 }
 
-func (wl *WatchlistController) GetCalculated(id primitive.ObjectID, email string) ([]model.CalculatedStockInfo, error) {
+func (wl *WatchlistController) GetCalculated(id primitive.ObjectID, email string, userID string) ([]model.CalculatedStockInfo, error) {
 	watchlist, err := wl.getAndValidateUserAuthorization(id, email)
 
 	if err != nil {
@@ -109,6 +113,14 @@ func (wl *WatchlistController) GetCalculated(id primitive.ObjectID, email string
 
 	var stockInfos []model.CalculatedStockInfo
 
+	userprofile, err := api.GetUserprofile(userID)
+
+	if err != nil {
+		log.Println(err)
+		defaultExpectation := 9.0
+		userprofile = userprofileModel.Userprofile{DefaultExpectation: &defaultExpectation}
+	}
+
 	for _, symbol := range watchlist.Stocks {
 		result, err := database.Get(symbol)
 
@@ -117,7 +129,11 @@ func (wl *WatchlistController) GetCalculated(id primitive.ObjectID, email string
 			continue
 		}
 
-		calculatedStockInfo := service.Calculate(&result)
+		expectation := userprofile.GetExpectation(symbol)
+
+		log.Printf("Symbol [%s] expectation [%f]", symbol, expectation)
+
+		calculatedStockInfo := service.Calculate(&result, expectation)
 
 		stockInfos = append(stockInfos, calculatedStockInfo)
 	}
