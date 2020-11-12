@@ -82,6 +82,10 @@ func Calculate(stockInfo *model.StockDataInfo, expectedRaise float64) model.Calc
 				log.Println("After unlock in happy")
 				log.Println("SP500 dividend yield updated")
 			}
+		} else {
+			log.Println("Before unlock in already updated")
+			model.Sp500DivYield.Mux.Unlock()
+			log.Println("After unlock in already updated")
 		}
 	}
 
