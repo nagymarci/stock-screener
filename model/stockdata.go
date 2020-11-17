@@ -32,31 +32,10 @@ type StockDataInfo struct {
 	NextUpdate       time.Time         `json:"-" bson:"nextUpdate"`
 }
 
-//CalculatedStockInfo holds the data calculated for investment suggestions
-type CalculatedStockInfo struct {
-	Ticker         string  `json:"ticker"`
-	Price          float64 `json:"price"`
-	OptInPrice     float64 `json:"optInPrice"`
-	PriceColor     string  `json:"priceColor"`
-	AnnualDividend float64 `json:"dividend"`
-	DividendYield  float64 `json:"dividendYield"`
-	OptInYield     float64 `json:"optInYield"`
-	DividendColor  string  `json:"dividendColor"`
-	CurrentPe      float64 `json:"currentPe"`
-	OptInPe        float64 `json:"optInPe"`
-	PeColor        string  `json:"pecolor"`
-}
-
 type sp500DivYield struct {
 	Yield      float64
 	NextUpdate time.Time
 	Mux        sync.Mutex
-}
-
-//Profile holds a profileName with list of stocks
-type Profile struct {
-	Name   string   `bson:"name"`
-	Stocks []string `bson:"stocks"`
 }
 
 //Stocks represent list of stocks
