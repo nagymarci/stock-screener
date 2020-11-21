@@ -1,101 +1,88 @@
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
+	"github.com/nagymarci/stock-screener/api"
+	"github.com/nagymarci/stock-screener/model"
+	"github.com/sirupsen/logrus"
 
-	"github.com/nagymarci/stock-screener/service"
-
-	"github.com/gorilla/mux"
 	"github.com/nagymarci/stock-screener/database"
+
+	stockHttp "github.com/nagymarci/stock-commons/http"
 )
 
-// RegisterStock registers a stock symbol to the watchlist to evaluate it
-func RegisterStock(w http.ResponseWriter, r *http.Request) {
-	symbol := mux.Vars(r)["symbol"]
+type Controller struct {
+	database *database.Stockinfos
+	client   *api.StockScraper
+}
 
-	_, err := database.Get(symbol)
+func New(db *database.Stockinfos, cl *api.StockScraper) *Controller {
+	return &Controller{
+		database: db,
+		client:   cl,
+	}
+}
+
+// RegisterStock registers a stock symbol to the watchlist to evaluate it
+func (c *Controller) RegisterStock(symbol string) error {
+	_, err := c.database.Get(symbol)
 
 	if err == nil {
-		w.WriteHeader(http.StatusNotModified)
-		return
+		return nil
 	}
 
-	stockData, err := service.Get(symbol)
+	stockData, err := c.client.Get(symbol)
 
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusFailedDependency)
-		fmt.Fprint(w, err)
-		return
+		return stockHttp.NewFailedDependencyError(err.Error())
 	}
 
-	stockData.CalculateNextUpdateTimes()
-
-	err = database.Save(stockData)
+	err = c.database.Save(stockData)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, err)
-		return
+		return stockHttp.NewInternalServerError(err.Error())
 	}
 
-	w.WriteHeader(http.StatusCreated)
-
-	json.NewEncoder(w).Encode(stockData)
+	return nil
 }
 
 // GetStockInfo returns the information of a stock symbol
-func GetStockInfo(w http.ResponseWriter, r *http.Request) {
-	symbol := mux.Vars(r)["symbol"]
-
-	result, err := database.Get(symbol)
+func (c *Controller) GetStockInfo(symbol string) (model.StockDataInfo, error) {
+	result, err := c.database.Get(symbol)
 
 	if err != nil {
-		log.Printf("Failed to get stock [%s]: [%v]\n", symbol, err)
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, err.Error())
-		return
+		return result, stockHttp.NewNotFoundError(err.Error())
 	}
 
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(result)
+	return result, nil
 }
 
 // GetAllStocks returns the information of all of the stocks
-func GetAllStocks(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetAllStocks() []model.StockDataInfo {
+	result, err := c.database.GetAll()
 
-	result := database.GetAll()
+	if err != nil {
+		logrus.Warnln(err)
+	}
 
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(result)
+	return result
 }
 
+/*
 //UpdateAll updates all stocks in the database
-func UpdateAll(w http.ResponseWriter, r *http.Request) {
-	log.Println("Updating all stocks")
+func UpdateAll() {
 
 	go service.UpdateStocks()
 
 	w.WriteHeader(http.StatusOK)
-}
+}*/
 
 //DeleteStock deletes the given stock from the database
-func DeleteStock(w http.ResponseWriter, r *http.Request) {
-	symbol := mux.Vars(r)["symbol"]
-
-	log.Printf("Delete [%s]", symbol)
-
-	err := database.Delete(symbol)
+func (c *Controller) DeleteStock(symbol string) error {
+	err := c.database.Delete(symbol)
 
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		return stockHttp.NewInternalServerError(err.Error())
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	return nil
 }

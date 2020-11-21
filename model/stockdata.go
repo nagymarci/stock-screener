@@ -1,12 +1,7 @@
 package model
 
 import (
-	"fmt"
-	"math/rand"
-	"sync"
 	"time"
-
-	"github.com/nagymarci/stock-screener/config"
 )
 
 type pERatioInfo struct {
@@ -32,33 +27,7 @@ type StockDataInfo struct {
 	NextUpdate       time.Time         `json:"-" bson:"nextUpdate"`
 }
 
-type sp500DivYield struct {
-	Yield      float64
-	NextUpdate time.Time
-	Mux        sync.Mutex
-}
-
 //Stocks represent list of stocks
 type Stocks struct {
 	Values []string `json:"values"`
-}
-
-//Sp500DivYield stores information of the S&P500 dividend yield, and when we should update it next
-var Sp500DivYield sp500DivYield
-
-//CalculateNextUpdateTimes calculates the next update times based on the configuration
-func (stock *StockDataInfo) CalculateNextUpdateTimes() {
-	stockUpdateInterval, _ := time.ParseDuration(config.Config.StockUpdateInterval)
-	peUpdateInterval, _ := time.ParseDuration(config.Config.PeUpdateInterval)
-	divYieldUpdateInterval, _ := time.ParseDuration(config.Config.DivYieldUpdateInterval)
-
-	randMinutes := rand.Intn(30)
-	randMinutesInterval, _ := time.ParseDuration(fmt.Sprintf("%dm", randMinutes))
-
-	randHours := rand.Intn(24)
-	randHoursInterval, _ := time.ParseDuration(fmt.Sprintf("%dh", randHours))
-
-	stock.NextUpdate = time.Now().Add(stockUpdateInterval).Add(randMinutesInterval)
-	stock.PeRatio5yr.NextUpdate = time.Now().Add(peUpdateInterval).Add(randHoursInterval)
-	stock.DividendYield5yr.NextUpdate = time.Now().Add(divYieldUpdateInterval).Add(randHoursInterval)
 }

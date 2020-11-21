@@ -8,9 +8,12 @@ require (
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/gorilla/mux v1.8.0
+	github.com/nagymarci/stock-commons v1.3.0
 	github.com/nagymarci/stock-user-profile v1.2.1
 	github.com/robfig/cron/v3 v3.0.0
+	github.com/sirupsen/logrus v1.7.0
 	github.com/tkanos/gonfig v0.0.0-20181112185242-896f3d81fadf
 	github.com/urfave/negroni v1.0.0
 	go.mongodb.org/mongo-driver v1.4.2
+	honnef.co/go/tools v0.0.1-2020.1.6
 )

@@ -1,4 +1,4 @@
-package service
+package api
 
 import (
 	"encoding/json"
@@ -6,24 +6,27 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/nagymarci/stock-screener/config"
 	"github.com/nagymarci/stock-screener/model"
 )
 
-var defaultDividendPerYear float64 = 4
-var minOptInYieldWeight float64 = 0.4
-var maxOptInPeWeight float64 = 0.5
-var lowerDividendYieldGuardScore float64 = 1.5
-var expectedRaiseMagicNumber float64 = 9.0
+type StockScraper struct {
+	host string
+}
+
+func New(h string) *StockScraper {
+	return &StockScraper{
+		host: h,
+	}
+}
 
 //Get returns the requested stock from the provider
-func Get(symbol string) (model.StockDataInfo, error) {
-	return GetWithFields(symbol, []string{})
+func (ss *StockScraper) Get(symbol string) (model.StockDataInfo, error) {
+	return ss.GetWithFields(symbol, []string{})
 }
 
 //GetWithFields returns the stock from the provider with the requested fields filled
-func GetWithFields(symbol string, fields []string) (model.StockDataInfo, error) {
-	resp, err := http.Get(config.Config.StockInfoProviderURL + symbol + "?fields=" + strings.Join(fields, ","))
+func (ss *StockScraper) GetWithFields(symbol string, fields []string) (model.StockDataInfo, error) {
+	resp, err := http.Get(ss.host + symbol + "?fields=" + strings.Join(fields, ","))
 
 	if err != nil {
 		return model.StockDataInfo{}, fmt.Errorf("Failed to get [%s] with error [%v]", symbol, err)

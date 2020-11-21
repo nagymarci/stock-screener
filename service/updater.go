@@ -1,21 +1,49 @@
 package service
 
 import (
-	"log"
+	"fmt"
+	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/nagymarci/stock-screener/api"
+	"github.com/nagymarci/stock-screener/model"
+	"github.com/sirupsen/logrus"
 
 	"github.com/nagymarci/stock-screener/database"
 )
 
-var mux sync.Mutex
+type Updater struct {
+	mux                    sync.Mutex
+	database               *database.Stockinfos
+	stockClient            *api.StockScraper
+	stockUpdateInterval    string
+	peUpdateInterval       string
+	divYieldUpdateInterval string
+}
+
+func New(db *database.Stockinfos, sc *api.StockScraper, stockInterval, peInterval, divInterval string) *Updater {
+	return &Updater{
+		database:               db,
+		stockClient:            sc,
+		stockUpdateInterval:    stockInterval,
+		peUpdateInterval:       peInterval,
+		divYieldUpdateInterval: divInterval,
+	}
+}
 
 //UpdateStocks checks NextUpdate attribute of the stock and updates it if the time passed
-func UpdateStocks() {
-	mux.Lock()
+func (u *Updater) UpdateStocks() {
+	log := logrus.WithField("component", "updater")
+	u.mux.Lock()
+	defer u.mux.Unlock()
 
-	stocks := database.GetAllExpired()
-	log.Printf("Updating [%d] stocks\n", len(stocks))
+	stocks, err := u.database.GetAllExpired()
+	if err != nil {
+		log.Errorln(err)
+		return
+	}
+	log.Infof("Updating [%d] stocks\n", len(stocks))
 
 	now := time.Now()
 
@@ -31,15 +59,31 @@ func UpdateStocks() {
 			fields = append(fields, "pe")
 		}
 
-		newStockInfo, err := GetWithFields(stockInfo.Ticker, fields)
+		newStockInfo, err := u.stockClient.GetWithFields(stockInfo.Ticker, fields)
 		if err != nil {
-			log.Println(err)
+			log.WithField("ticker", stockInfo.Ticker).Warningln(err)
 			continue
 		}
 
-		newStockInfo.CalculateNextUpdateTimes()
+		u.calculateNextUpdateTimes(&newStockInfo)
 
-		database.Update(newStockInfo)
+		u.database.Update(newStockInfo)
 	}
-	mux.Unlock()
+}
+
+//CalculateNextUpdateTimes calculates the next update times based on the configuration
+func (u *Updater) calculateNextUpdateTimes(stock *model.StockDataInfo) {
+	stockUpdateInterval, _ := time.ParseDuration(u.stockUpdateInterval)
+	peUpdateInterval, _ := time.ParseDuration(u.peUpdateInterval)
+	divYieldUpdateInterval, _ := time.ParseDuration(u.divYieldUpdateInterval)
+
+	randMinutes := rand.Intn(30)
+	randMinutesInterval, _ := time.ParseDuration(fmt.Sprintf("%dm", randMinutes))
+
+	randHours := rand.Intn(24)
+	randHoursInterval, _ := time.ParseDuration(fmt.Sprintf("%dh", randHours))
+
+	stock.NextUpdate = time.Now().Add(stockUpdateInterval).Add(randMinutesInterval)
+	stock.PeRatio5yr.NextUpdate = time.Now().Add(peUpdateInterval).Add(randHoursInterval)
+	stock.DividendYield5yr.NextUpdate = time.Now().Add(divYieldUpdateInterval).Add(randHoursInterval)
 }
