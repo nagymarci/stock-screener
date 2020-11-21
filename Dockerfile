@@ -18,7 +18,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN go build -o main .
+RUN go build -o main ./cmd/server
 
 FROM alpine:latest
 
@@ -26,11 +26,9 @@ RUN apk add --no-cache bash tzdata
 
 # Copy binary from build to main folder
 COPY --from=builder /build/main .
-COPY wait-for-it.sh .
 
 # Export necessary port
 EXPOSE 3100
 
-RUN ["chmod", "+x", "./wait-for-it.sh"]
 # Command to run when starting the container
-CMD ["./wait-for-it.sh", "stock-scraper:3000", "--", "./main"]
+CMD ["./main"]

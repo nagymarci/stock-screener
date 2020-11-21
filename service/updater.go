@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nagymarci/stock-screener/api"
 	"github.com/nagymarci/stock-screener/model"
 	"github.com/sirupsen/logrus"
 
@@ -16,13 +15,17 @@ import (
 type Updater struct {
 	mux                    sync.Mutex
 	database               *database.Stockinfos
-	stockClient            *api.StockScraper
+	stockClient            getStockWithFields
 	stockUpdateInterval    string
 	peUpdateInterval       string
 	divYieldUpdateInterval string
 }
 
-func New(db *database.Stockinfos, sc *api.StockScraper, stockInterval, peInterval, divInterval string) *Updater {
+type getStockWithFields interface {
+	GetWithFields(symbol string, fields []string) (model.StockDataInfo, error)
+}
+
+func New(db *database.Stockinfos, sc getStockWithFields, stockInterval, peInterval, divInterval string) *Updater {
 	return &Updater{
 		database:               db,
 		stockClient:            sc,
