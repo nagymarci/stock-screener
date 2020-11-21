@@ -1,375 +1,88 @@
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
-	"strconv"
-
-	"github.com/dgrijalva/jwt-go"
+	"github.com/nagymarci/stock-screener/api"
 	"github.com/nagymarci/stock-screener/model"
+	"github.com/sirupsen/logrus"
 
-	"github.com/nagymarci/stock-screener/service"
-
-	"github.com/gorilla/mux"
 	"github.com/nagymarci/stock-screener/database"
+
+	stockHttp "github.com/nagymarci/stock-commons/http"
 )
 
-// RegisterStock registers a stock symbol to the watchlist to evaluate it
-func RegisterStock(w http.ResponseWriter, r *http.Request) {
-	symbol := mux.Vars(r)["symbol"]
+type Controller struct {
+	database *database.Stockinfos
+	client   *api.StockScraper
+}
 
-	_, err := database.Get(symbol)
+func New(db *database.Stockinfos, cl *api.StockScraper) *Controller {
+	return &Controller{
+		database: db,
+		client:   cl,
+	}
+}
+
+// RegisterStock registers a stock symbol to the watchlist to evaluate it
+func (c *Controller) RegisterStock(symbol string) error {
+	_, err := c.database.Get(symbol)
 
 	if err == nil {
-		w.WriteHeader(http.StatusNotModified)
-		return
+		return nil
 	}
 
-	stockData, err := service.Get(symbol)
+	stockData, err := c.client.Get(symbol)
 
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusFailedDependency)
-		fmt.Fprint(w, err)
-		return
+		return stockHttp.NewFailedDependencyError(err.Error())
 	}
 
-	stockData.CalculateNextUpdateTimes()
-
-	err = database.Save(stockData)
+	err = c.database.Save(stockData)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, err)
-		return
+		return stockHttp.NewInternalServerError(err.Error())
 	}
 
-	w.WriteHeader(http.StatusCreated)
-
-	json.NewEncoder(w).Encode(stockData)
+	return nil
 }
 
 // GetStockInfo returns the information of a stock symbol
-func GetStockInfo(w http.ResponseWriter, r *http.Request) {
-	symbol := mux.Vars(r)["symbol"]
-
-	result, err := database.Get(symbol)
+func (c *Controller) GetStockInfo(symbol string) (model.StockDataInfo, error) {
+	result, err := c.database.Get(symbol)
 
 	if err != nil {
-		log.Printf("Failed to get stock [%s]: [%v]\n", symbol, err)
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, err.Error())
-		return
+		return result, stockHttp.NewNotFoundError(err.Error())
 	}
 
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(result)
+	return result, nil
 }
 
 // GetAllStocks returns the information of all of the stocks
-func GetAllStocks(w http.ResponseWriter, r *http.Request) {
-
-	result := database.GetAll()
-
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(result)
-}
-
-//GetCalculatedStockInfo returns the calculated informatin of a stock
-func GetCalculatedStockInfo(w http.ResponseWriter, r *http.Request) {
-	symbol := mux.Vars(r)["symbol"]
-
-	stockInfo, err := database.Get(symbol)
+func (c *Controller) GetAllStocks() []model.StockDataInfo {
+	result, err := c.database.GetAll()
 
 	if err != nil {
-		log.Printf("Failed to get stock [%s]: [%v]\n", symbol, err)
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, err.Error())
-		return
+		logrus.Warnln(err)
 	}
 
-	calculatedStockInfo := service.Calculate(&stockInfo, 9)
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(calculatedStockInfo)
+	return result
 }
 
+/*
 //UpdateAll updates all stocks in the database
-func UpdateAll(w http.ResponseWriter, r *http.Request) {
-	log.Println("Updating all stocks")
+func UpdateAll() {
 
 	go service.UpdateStocks()
 
 	w.WriteHeader(http.StatusOK)
-}
+}*/
 
 //DeleteStock deletes the given stock from the database
-func DeleteStock(w http.ResponseWriter, r *http.Request) {
-	symbol := mux.Vars(r)["symbol"]
-
-	log.Printf("Delete [%s]", symbol)
-
-	err := database.Delete(symbol)
+func (c *Controller) DeleteStock(symbol string) error {
+	err := c.database.Delete(symbol)
 
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		return stockHttp.NewInternalServerError(err.Error())
 	}
 
-	w.WriteHeader(http.StatusNoContent)
-}
-
-//GetAllRecommendedStock calculates the data for all stocks and returns the recommended ones
-func GetAllRecommendedStock(w http.ResponseWriter, r *http.Request) {
-	log.Println("GetAllCalculatedStockInfo")
-	min := r.FormValue("min")
-
-	if min == "" {
-		min = "3"
-	}
-
-	numReqs, err := strconv.Atoi(min)
-
-	if err != nil || numReqs < 1 || numReqs > 3 {
-		log.Println("Invalid parameter, changing to 3", err)
-		numReqs = 3
-	}
-
-	log.Println(numReqs, err)
-
-	stocks := database.GetAll()
-
-	result := service.GetAllRecommendedStock(stocks, numReqs)
-
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(result)
-}
-
-//GetAllCalculatedStock calculates the data for all stocks and returns all of them
-func GetAllCalculatedStocks(w http.ResponseWriter, r *http.Request) {
-	log.Println("GetAllCalculatedStock")
-
-	stocks := database.GetAll()
-
-	result := service.GetAllRecommendedStock(stocks, 0)
-
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(result)
-}
-
-func SaveProfile(w http.ResponseWriter, r *http.Request) {
-	name := mux.Vars(r)["name"]
-
-	user := r.Context().Value("user")
-
-	email := user.(*jwt.Token).Claims.(jwt.MapClaims)["https://stock.nagymarci.hu/email"].(string)
-	log.Printf("User email: %s", email)
-
-	var stocks model.Stocks
-
-	err := json.NewDecoder(r.Body).Decode(&stocks)
-
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintln(w, err)
-		return
-	}
-
-	database.DeleteProfile(name)
-
-	profile := model.Profile{Name: name}
-
-	for _, symbol := range stocks.Values {
-		_, err := database.Get(symbol)
-
-		if err == nil {
-			profile.Stocks = append(profile.Stocks, symbol)
-			continue
-		}
-
-		stockData, err := service.Get(symbol)
-
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		err = database.Save(stockData)
-
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		profile.Stocks = append(profile.Stocks, symbol)
-	}
-
-	err = database.SaveProfile(profile)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-
-	json.NewEncoder(w).Encode(profile)
-}
-
-func DeleteProfile(w http.ResponseWriter, r *http.Request) {
-	name := mux.Vars(r)["name"]
-
-	err := database.DeleteProfile(name)
-
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	err = database.DeleteRecommendation(name)
-
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func GetStocksInProfile(w http.ResponseWriter, r *http.Request) {
-	name := mux.Vars(r)["name"]
-
-	profile, err := database.GetProfile(name)
-
-	if err != nil {
-		log.Printf("Failed to get profile [%s]: [%v]\n", name, err)
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, err.Error())
-		return
-	}
-
-	var stockInfos []model.StockDataInfo
-
-	for _, symbol := range profile.Stocks {
-		result, err := database.Get(symbol)
-
-		if err != nil {
-			log.Printf("Failed to get stock [%s]: [%v]\n", symbol, err)
-			continue
-		}
-
-		stockInfos = append(stockInfos, result)
-	}
-
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(stockInfos)
-
-}
-
-func ListProfiles(w http.ResponseWriter, r *http.Request) {
-	profiles, err := database.GetAllProfileName()
-
-	if err != nil {
-		log.Printf("Failed to get profiles [%v]", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, err.Error())
-	}
-
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(profiles)
-}
-
-func GetCalculatedStocksInProfile(w http.ResponseWriter, r *http.Request) {
-	name := mux.Vars(r)["name"]
-
-	profile, err := database.GetProfile(name)
-
-	if err != nil {
-		log.Printf("Failed to get profile [%s]: [%v]\n", name, err)
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, err.Error())
-		return
-	}
-
-	var stockInfos []model.CalculatedStockInfo
-
-	for _, symbol := range profile.Stocks {
-		result, err := database.Get(symbol)
-
-		if err != nil {
-			log.Printf("Failed to get stock [%s]: [%v]\n", symbol, err)
-			continue
-		}
-
-		calculatedStockInfo := service.Calculate(&result, 9)
-
-		stockInfos = append(stockInfos, calculatedStockInfo)
-	}
-
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(stockInfos)
-
-}
-
-func GetRecommendedStocksInProfile(w http.ResponseWriter, r *http.Request) {
-	log.Println("GetAllCalculatedStockInfo")
-	name := mux.Vars(r)["name"]
-	min := r.FormValue("min")
-
-	if min == "" {
-		min = "3"
-	}
-
-	numReqs, err := strconv.Atoi(min)
-
-	if err != nil || numReqs < 1 || numReqs > 3 {
-		log.Println("Invalid parameter, changing to 3", err)
-		numReqs = 3
-	}
-
-	log.Println(numReqs, err)
-
-	profile, err := database.GetProfile(name)
-
-	if err != nil {
-		log.Printf("Failed to get profile [%s]: [%v]\n", name, err)
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, err.Error())
-		return
-	}
-
-	var stockInfos []model.StockDataInfo
-
-	for _, symbol := range profile.Stocks {
-		result, err := database.Get(symbol)
-
-		if err != nil {
-			log.Printf("Failed to get stock [%s]: [%v]\n", symbol, err)
-			continue
-		}
-
-		stockInfos = append(stockInfos, result)
-	}
-
-	result := service.GetAllRecommendedStock(stockInfos, numReqs)
-
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(result)
-
-}
-
-func NotifyTest(w http.ResponseWriter, r *http.Request) {
-	service.NotifyChanges()
-	w.WriteHeader(http.StatusOK)
+	return nil
 }

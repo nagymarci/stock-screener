@@ -1,22 +1,52 @@
 package service
 
 import (
-	"log"
+	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
-	"github.com/nagymarci/stock-screener/database"
 	"github.com/nagymarci/stock-screener/model"
+	"github.com/sirupsen/logrus"
+
+	"github.com/nagymarci/stock-screener/database"
 )
 
-var mux sync.Mutex
+type Updater struct {
+	mux                    sync.Mutex
+	database               *database.Stockinfos
+	stockClient            getStockWithFields
+	stockUpdateInterval    string
+	peUpdateInterval       string
+	divYieldUpdateInterval string
+}
+
+type getStockWithFields interface {
+	GetWithFields(symbol string, fields []string) (model.StockDataInfo, error)
+}
+
+func New(db *database.Stockinfos, sc getStockWithFields, stockInterval, peInterval, divInterval string) *Updater {
+	return &Updater{
+		database:               db,
+		stockClient:            sc,
+		stockUpdateInterval:    stockInterval,
+		peUpdateInterval:       peInterval,
+		divYieldUpdateInterval: divInterval,
+	}
+}
 
 //UpdateStocks checks NextUpdate attribute of the stock and updates it if the time passed
-func UpdateStocks() {
-	mux.Lock()
+func (u *Updater) UpdateStocks() {
+	log := logrus.WithField("component", "updater")
+	u.mux.Lock()
+	defer u.mux.Unlock()
 
-	stocks := database.GetAllExpired()
-	log.Printf("Updating [%d] stocks\n", len(stocks))
+	stocks, err := u.database.GetAllExpired()
+	if err != nil {
+		log.Errorln(err)
+		return
+	}
+	log.Infof("Updating [%d] stocks\n", len(stocks))
 
 	now := time.Now()
 
@@ -32,113 +62,31 @@ func UpdateStocks() {
 			fields = append(fields, "pe")
 		}
 
-		newStockInfo, err := GetWithFields(stockInfo.Ticker, fields)
+		newStockInfo, err := u.stockClient.GetWithFields(stockInfo.Ticker, fields)
 		if err != nil {
-			log.Println(err)
+			log.WithField("ticker", stockInfo.Ticker).Warningln(err)
 			continue
 		}
 
-		newStockInfo.CalculateNextUpdateTimes()
+		u.calculateNextUpdateTimes(&newStockInfo)
 
-		database.Update(newStockInfo)
-	}
-	mux.Unlock()
-}
-
-func NotifyChanges() {
-	profiles, err := database.GetAllProfileName()
-
-	if err != nil {
-		log.Printf("Failed to get profiles [%v]", err)
-		return
-	}
-
-	for _, profileName := range profiles {
-		previouStocks, _ := database.GetPreviouslyRecommendedStocks(profileName)
-
-		profile, err := database.GetProfile(profileName)
-
-		if err != nil {
-			log.Printf("Failed to get profile [%s]: [%v]\n", profileName, err)
-			continue
-		}
-
-		var stockInfos []model.StockDataInfo
-
-		for _, symbol := range profile.Stocks {
-			result, err := database.Get(symbol)
-
-			if err != nil {
-				log.Printf("Failed to get stock [%s]: [%v]\n", symbol, err)
-				continue
-			}
-
-			stockInfos = append(stockInfos, result)
-		}
-
-		calculatedStockData := GetAllRecommendedStock(stockInfos, 2)
-
-		currentStocks := filterGreenPrices(calculatedStockData)
-
-		removed, added := getChanges(previouStocks, currentStocks)
-
-		if len(removed) == 0 && len(added) == 0 {
-			continue
-		}
-
-		err = sendNotification(profileName, removed, added, currentStocks)
-
-		if err != nil {
-			log.Printf("Failed to send notification for profile [%v], [%v]", profileName, err)
-			continue
-		}
-
-		database.SaveRecommendation(profileName, currentStocks)
+		u.database.Update(newStockInfo)
 	}
 }
 
-func filterGreenPrices(stockInfos []model.CalculatedStockInfo) []string {
-	var result []string
+//CalculateNextUpdateTimes calculates the next update times based on the configuration
+func (u *Updater) calculateNextUpdateTimes(stock *model.StockDataInfo) {
+	stockUpdateInterval, _ := time.ParseDuration(u.stockUpdateInterval)
+	peUpdateInterval, _ := time.ParseDuration(u.peUpdateInterval)
+	divYieldUpdateInterval, _ := time.ParseDuration(u.divYieldUpdateInterval)
 
-	for _, calc := range stockInfos {
-		if calc.PriceColor != "green" {
-			continue
-		}
+	randMinutes := rand.Intn(30)
+	randMinutesInterval, _ := time.ParseDuration(fmt.Sprintf("%dm", randMinutes))
 
-		result = append(result, calc.Ticker)
-	}
-	return result
-}
+	randHours := rand.Intn(24)
+	randHoursInterval, _ := time.ParseDuration(fmt.Sprintf("%dh", randHours))
 
-func getChanges(old, new []string) ([]string, []string) {
-	if len(old) == 0 || len(new) == 0 {
-		return old, new
-	}
-
-	var removed []string
-
-	for _, symbol := range old {
-		if !contains(new, symbol) {
-			removed = append(removed, symbol)
-		}
-	}
-
-	var added []string
-
-	for _, symbol := range new {
-		if !contains(old, symbol) {
-			added = append(added, symbol)
-		}
-	}
-
-	return removed, added
-}
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
+	stock.NextUpdate = time.Now().Add(stockUpdateInterval).Add(randMinutesInterval)
+	stock.PeRatio5yr.NextUpdate = time.Now().Add(peUpdateInterval).Add(randHoursInterval)
+	stock.DividendYield5yr.NextUpdate = time.Now().Add(divYieldUpdateInterval).Add(randHoursInterval)
 }
