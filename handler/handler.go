@@ -73,7 +73,7 @@ func UpdateAll(w http.ResponseWriter, r *http.Request) {
 
 //DeleteStock deletes the given stock from the database
 func DeleteStockHandler(router *mux.Router, controller *controllers.Controller) {
-	router.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/{symbol}", func(w http.ResponseWriter, r *http.Request) {
 		symbol := mux.Vars(r)["symbol"]
 
 		log := logrus.WithField("symbol", symbol)
